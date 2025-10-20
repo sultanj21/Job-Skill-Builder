@@ -1,0 +1,5 @@
+[
+  {"title": "Frontend Developer", "company": "TechNova", "location": "Atlanta, GA", "link": "https://example.com/apply/frontend"},
+  {"title": "Software Engineer", "company": "CloudCore", "location": "Remote", "link": "https://example.com/apply/software"},
+  {"title": "Data Analyst", "company": "Insightful Corp", "location": "New York, NY", "link": "https://example.com/apply/analyst"}
+]

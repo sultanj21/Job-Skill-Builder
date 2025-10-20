@@ -1,0 +1,25 @@
+[
+  {},
+  {
+    "id": 2,
+    "uniqueId": 46886573,
+    "firstName": "sultan",
+    "lastName": "Abuhijleh",
+    "birthday": "2025-10-19",
+    "email": "Abuhijleh.sultan@yahoo.com",
+    "occupation": "software engineer",
+    "password": "$2b$10$DmnfvMyc7DuON63Jy7vnqupkraf41bVWe/0C8hDmitxRrV0TN8bg.",
+    "address": {
+      "street": "799 key largo pointe",
+      "city": "aubrun",
+      "state": "GA",
+      "zip": "30011"
+    },
+    "education": {
+      "college": "georgia state university",
+      "certificate": "BSc computer science",
+      "gradDate": "2025-10-19"
+    },
+    "registeredAt": "2025-10-20T03:54:23.579Z"
+  }
+]

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login | Pathway</title>
+    <link rel="stylesheet" href="style.css"/>
+    <style>
+        .toggle-pass {
+            position: absolute;
+            right: 14px;
+            top: 40px;
+            cursor: pointer;
+            color: #6b7280;
+            transition: 0.2s ease;
+        }
+        .toggle-pass:hover { color: #333; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Welcome back 👋</h1>
+    <p>Log in to view your dashboard</p>
+
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="you@email.com" required/>
+        </div>
+
+        <div class="form-group" style="position:relative">
+            <label for="password">Password</label>
+            <input id="password" type="password" placeholder="Your password" required/>
+            <span class="toggle-pass" id="toggleLoginPass">👁️</span>
+        </div>
+
+        <button type="submit">Login</button>
+        <p id="message" class="hidden"></p>
+    </form>
+
+    <p>Don’t have an account? <a href="register_personal.html">Register here</a></p>
+</div>
+
+<script>
+    document.getElementById("toggleLoginPass").addEventListener("click",()=>{
+        const p=document.getElementById("password");
+        const show=p.type==="password";
+        p.type=show?"text":"password";
+        document.getElementById("toggleLoginPass").textContent=show?"🔓":"🔒";
+    });
+
+    document.getElementById("loginForm").addEventListener("submit",async(e)=>{
+        e.preventDefault();
+        const email=document.getElementById("email").value.trim();
+        const password=document.getElementById("password").value.trim();
+        const message=document.getElementById("message");
+        message.classList.remove("hidden");
+        message.textContent="⏳ Logging in...";
+
+        try{
+            const res=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+            const data=await res.json();
+            if(!res.ok){message.textContent=`❌ ${data.message||"Invalid email or password"}`;return;}
+            const userData={...data.user,lastLogin:new Date().toLocaleString()};
+            localStorage.setItem("loggedInUser",JSON.stringify(userData));
+            message.textContent="✅ Login successful! Redirecting...";
+            setTimeout(()=>location.href="dashboard.html",800);
+        }catch(e){
+            message.textContent="⚠️ Server error. Please try again.";
+        }
+    });
+</script>
+</body>
+</html>
