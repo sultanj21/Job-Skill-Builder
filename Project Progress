@@ -1,0 +1,21 @@
+Team Members and Responsibilities:
+
+🧑‍💻 Sashank Varma Buddharaju (Coordinator) – Managed backend integration, deployment to Render, and MongoDB Atlas connection.
+
+👨‍💻 Amogh Kulkarni – Updated use cases and developed the Job Recommendation logic.
+
+👨‍💻 Matt Kerem – Implemented API integration and Resume Formatter endpoint testing.
+
+👩‍💻 Niruthiya Narashiman Srinivasan – Refined problem statement and created UML diagrams.
+
+👩‍💻 Ananti Savani – Designed database schemas (MongoDB) and assisted with class and sequence diagrams.
+
+👨‍💻 Sultan Abuhijleh – Handled report formatting, PDF assembly, and GitHub board maintenance.
+
+The Kanban board displays all Sprint 3 tasks assigned to each member:
+
+To-Do: Prepare class and sequence diagrams, finalize database schema updates.
+
+In-Progress: Connect frontend with backend APIs, test AI resume formatter, refine documentation.
+
+Done: Deployed live demo to Render, implemented MongoDB Atlas database, created and uploaded Sprint 3 report.
