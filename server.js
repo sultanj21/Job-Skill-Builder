@@ -6,6 +6,7 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcrypt");
+const { Pool } = require("pg");
 const OpenAI = require("openai");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
@@ -14,6 +15,28 @@ const elevatorRoutes = require("./elevatorRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const openaiClient = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+
+// ---------- Database (Supabase Postgres) ----------
+const SUPABASE_DB_URL = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL || "";
+const SUPABASE_USERS_TABLE = process.env.SUPABASE_USERS_TABLE || "users";
+let dbPool = null;
+
+if (SUPABASE_DB_URL) {
+    dbPool = new Pool({
+        connectionString: SUPABASE_DB_URL,
+        ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }
+    });
+
+    dbPool.on("error", (err) => {
+        console.error("Postgres pool error:", err.message);
+    });
+
+    ensureUsersTable().catch((err) => {
+        console.error("Failed to ensure Supabase users table:", err.message);
+    });
+} else {
+    console.warn("ℹ️ SUPABASE_DB_URL not set; falling back to local JSON storage.");
+}
 
 // ---------- Middleware ----------
 app.use(cors());
@@ -51,6 +74,41 @@ if (!fs.existsSync(COLLEGES_FILE)) {
     );
 }
 
+async function ensureUsersTable() {
+    if (!dbPool) return;
+    const tableName = SUPABASE_USERS_TABLE;
+    const extensionSQL = `CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+    const createTableSQL = `
+        CREATE TABLE IF NOT EXISTS ${tableName} (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            unique_id BIGINT UNIQUE,
+            firstname TEXT NOT NULL,
+            lastname TEXT NOT NULL,
+            fullname TEXT NOT NULL,
+            birthday DATE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            occupation TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            street TEXT NOT NULL,
+            city TEXT NOT NULL,
+            state TEXT NOT NULL,
+            zip TEXT NOT NULL,
+            college TEXT NOT NULL,
+            certificate TEXT NOT NULL,
+            graddate DATE NOT NULL,
+            profilepicpath TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+    `;
+    const emailIndexSQL = `CREATE UNIQUE INDEX IF NOT EXISTS ${tableName}_email_idx ON ${tableName}(email);`;
+    const uniqueIdIndexSQL = `CREATE UNIQUE INDEX IF NOT EXISTS ${tableName}_unique_id_idx ON ${tableName}(unique_id) WHERE unique_id IS NOT NULL;`;
+
+    await dbPool.query(extensionSQL);
+    await dbPool.query(createTableSQL);
+    await dbPool.query(emailIndexSQL);
+    await dbPool.query(uniqueIdIndexSQL);
+}
+
 // ---------- Helper: Generate unique 8-digit ID ----------
 function generateUniqueId(users) {
     let id;
@@ -58,6 +116,56 @@ function generateUniqueId(users) {
         id = Math.floor(10000000 + Math.random() * 90000000);
     } while (users.find((u) => u.uniqueId === id));
     return id;
+}
+
+async function generateDbUniqueId() {
+    if (!dbPool) return Math.floor(10000000 + Math.random() * 90000000);
+    let id;
+    let exists = true;
+    while (exists) {
+        id = Math.floor(10000000 + Math.random() * 90000000);
+        const { rowCount } = await dbPool.query(
+            `SELECT 1 FROM ${SUPABASE_USERS_TABLE} WHERE unique_id = $1`,
+            [id]
+        );
+        exists = rowCount > 0;
+    }
+    return id;
+}
+
+function mapDbUser(row) {
+    if (!row) return null;
+    return {
+        id: row.id,
+        uniqueId: row.unique_id || row.id,
+        firstName: row.firstname,
+        lastName: row.lastname,
+        birthday: row.birthday,
+        email: row.email,
+        occupation: row.occupation,
+        address: {
+            street: row.street,
+            city: row.city,
+            state: row.state,
+            zip: row.zip
+        },
+        education: {
+            college: row.college,
+            certificate: row.certificate,
+            gradDate: row.graddate
+        },
+        registeredAt: row.created_at,
+        profilePicPath: row.profilepicpath || null
+    };
+}
+
+async function fetchDbUserByEmail(email) {
+    if (!dbPool) return null;
+    const { rows } = await dbPool.query(
+        `SELECT * FROM ${SUPABASE_USERS_TABLE} WHERE email = $1 LIMIT 1`,
+        [email]
+    );
+    return rows[0] || null;
 }
 
 // ---------- Upload Setup ----------
@@ -147,6 +255,51 @@ app.post("/api/register", async (req, res) => {
         return res.status(400).json({ message: "Passwords do not match" });
     }
 
+    if (dbPool) {
+        try {
+            const existing = await fetchDbUserByEmail(email);
+            if (existing) {
+                return res.status(400).json({ message: "Email already registered" });
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const uniqueId = await generateDbUniqueId();
+            const insertSQL = `
+                INSERT INTO ${SUPABASE_USERS_TABLE}
+                    (unique_id, firstname, lastname, fullname, birthday, email, occupation, password_hash, street, city, state, zip, college, certificate, graddate, profilepicpath)
+                VALUES
+                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                RETURNING *;
+            `;
+
+            const { rows } = await dbPool.query(insertSQL, [
+                uniqueId,
+                firstName,
+                lastName,
+                `${firstName} ${lastName}`.trim(),
+                birthday,
+                email,
+                occupation,
+                hashedPassword,
+                street,
+                city,
+                state,
+                zip,
+                college,
+                certificate,
+                gradDate,
+                null
+            ]);
+
+            const dbUser = mapDbUser(rows[0]);
+            console.log(` Registered new user (Supabase): ${firstName} ${lastName} (ID: ${uniqueId})`);
+            return res.json({ message: "Registration successful!", user: dbUser });
+        } catch (err) {
+            console.error("Supabase registration error:", err);
+            return res.status(500).json({ message: "Failed to register user. Please try again." });
+        }
+    }
+
     const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) : [];
     if (users.find((u) => u.email === email)) {
         return res.status(400).json({ message: "Email already registered" });
@@ -180,6 +333,27 @@ app.post("/api/register", async (req, res) => {
 app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ message: "Email and password are required" });
+
+    if (dbPool) {
+        try {
+            const row = await fetchDbUserByEmail(email);
+            if (!row) return res.status(401).json({ message: "Invalid email or password" });
+
+            const isMatch = await bcrypt.compare(password, row.password_hash);
+            if (!isMatch) return res.status(401).json({ message: "Invalid email or password" });
+
+            const safeUser = mapDbUser(row);
+            console.log(`🔐 ${safeUser.firstName} ${safeUser.lastName} logged in via Supabase (ID: ${safeUser.uniqueId})`);
+
+            return res.json({
+                message: `Welcome back, ${safeUser.firstName}!`,
+                user: safeUser
+            });
+        } catch (err) {
+            console.error("Supabase login error:", err);
+            return res.status(500).json({ message: "Server error. Please try again." });
+        }
+    }
 
     const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) : [];
     const user = users.find((u) => u.email === email);

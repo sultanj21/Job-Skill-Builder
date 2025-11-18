@@ -22,3 +22,14 @@ With a focus on innovation, user experience, and data security, Pathway integrat
 Developed by: Amogh, Sashank, Matt, Niruthiya, Ananti, and Sultan
 Course: Software Engineering Project (Fall 2025)
 Guide: Dr. Tushara Sadasivuni
+
+## Supabase / Postgres Setup
+
+1. In the Supabase dashboard open **Project Settings → Database** and click **Reset database password** (or set it during project creation). Choose a strong password; this is the value that replaces `[YOUR_PASSWORD]` in the connection string Supabase shows at the top of that page.
+2. Copy the full URL (for example `postgresql://postgres:<PASSWORD>@db.dvyowyoxiixtfsjyqqae.supabase.co:5432/postgres`) and add it to your `.env` file:
+   ```
+   SUPABASE_DB_URL=postgresql://postgres:<PASSWORD>@db.dvyowyoxiixtfsjyqqae.supabase.co:5432/postgres
+   SUPABASE_USERS_TABLE=users
+   ```
+   Leave `SUPABASE_USERS_TABLE` unset if you want to use the default `users` table.
+3. Restart `node server.js`. When the env vars are present the API stores login data inside Supabase; if they are missing the code falls back to the local `users.json` file for offline development.
