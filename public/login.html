@@ -49,10 +49,9 @@
     // 👁️ Toggle password visibility
     document.getElementById("toggleLoginPass").addEventListener("click", () => {
         const passwordInput = document.getElementById("password");
-        const icon = document.getElementById("toggleLoginPass");
         const show = passwordInput.type === "password";
         passwordInput.type = show ? "text" : "password";
-        icon.textContent = show ? "🔓" : "👁️";
+        document.getElementById("toggleLoginPass").textContent = show ? "🔓" : "👁️";
     });
 
     // 🚀 Handle login submission
@@ -68,7 +67,7 @@
         message.textContent = "⏳ Logging in...";
 
         try {
-            const res = await fetch("/api/login", {
+            const res = await fetch("/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password })
@@ -76,15 +75,11 @@
 
             const data = await res.json();
 
-            if (!res.ok) {
+            if (!data.success) {
                 message.style.color = "red";
                 message.textContent = `❌ ${data.message || "Invalid email or password"}`;
                 return;
             }
-
-            // ✅ Save logged user
-            const userData = { ...data.user, lastLogin: new Date().toLocaleString() };
-            localStorage.setItem("loggedUser", JSON.stringify(userData));
 
             message.style.color = "green";
             message.textContent = "✅ Login successful! Redirecting...";
@@ -99,4 +94,3 @@
 </script>
 </body>
 </html>
-

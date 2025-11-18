@@ -44,10 +44,12 @@
     const list = box("collegeList");
     const collegeInput = box("college");
 
+    // Get colleges from backend
     async function searchColleges(q){
         const res = await fetch(`/api/colleges?search=${encodeURIComponent(q)}`);
         return res.json();
     }
+
     collegeInput.addEventListener("input", async ()=>{
         const q = collegeInput.value.trim();
         if(q.length<3){ list.style.display="none"; list.innerHTML=""; validate(); return; }
@@ -78,36 +80,36 @@
 
     submitBtn.addEventListener("click", async ()=>{
         if(!validate()) return;
+
         const payload = {
-            firstName: reg.firstName,
-            lastName: reg.lastName,
-            birthday: reg.birthday,
+            fullName: reg.firstName + " " + reg.lastName,
             email: reg.email,
-            occupation: reg.occupation,
-            password: reg.password,
-            confirmPassword: reg.confirmPassword,
-            street: reg.street,
-            city: reg.city,
-            state: reg.state,
-            zip: reg.zip,
-            college: box("college").value.trim(),
-            certificate: box("certificate").value.trim(),
-            gradDate: box("gradDate").value
+            password: reg.password
+            // You could also send extra data to another endpoint if you extend the schema
         };
 
         const msg = box("message");
         msg.style.color="#333"; msg.textContent="⏳ Submitting...";
 
         try{
-            const res = await fetch("/api/register",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+            const res = await fetch("/register",{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify(payload)
+            });
             const data = await res.json();
-            if(!res.ok){ msg.style.color="var(--bad)"; msg.textContent = `❌ ${data.message || "Registration failed"}`; return; }
+            if(!data.success){
+                msg.style.color="var(--bad)";
+                msg.textContent = `❌ ${data.message || "Registration failed"}`;
+                return;
+            }
 
             msg.style.color="var(--ok)";
-            msg.innerHTML = `🎉 Registration successful!<br/>Your unique ID: <b>${data.user.uniqueId}</b>`;
+            msg.innerHTML = `🎉 Registration successful! You can now log in.`;
             localStorage.removeItem("regData");
             setTimeout(()=> location.href="login.html", 1400);
         }catch(e){
+            console.error(e);
             msg.style.color="var(--bad)"; msg.textContent="Server error. Try again.";
         }
     });

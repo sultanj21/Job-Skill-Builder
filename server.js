@@ -1,17 +1,22 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const multer = require('multer');
-const { GridFsStorage } = require('multer-gridfs-storage');
-const Parser = require('rss-parser');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const Parser = require('rss-parser');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
 const parser = new Parser();
+
+// ---------- SUPABASE ----------
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 // ---------- MIDDLEWARE ----------
 app.use(express.json());
@@ -21,50 +26,11 @@ app.use(express.static("public"));
 
 app.use(
     session({
-        secret: "pathway-secret",
+        secret: process.env.SESSION_SECRET || "pathway-secret",
         resave: false,
         saveUninitialized: true,
     })
 );
-
-// ---------- MONGODB ----------
-const mongoURI = process.env.MONGO_URI;
-
-mongoose
-    .connect(mongoURI)
-    .then(() => console.log("✅ Connected to MongoDB Atlas"))
-    .catch((err) => console.log(err));
-
-// ---------- MODELS ----------
-const userSchema = new mongoose.Schema({
-    fullName: String,
-    email: { type: String, unique: true },
-    password: String,
-    profilePicPath: String
-});
-
-const jobSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    title: String,
-    company: String,
-    status: String,
-    date: String,
-    createdAt: { type: Date, default: Date.now }
-});
-
-const interviewSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    company: String,
-    role: String,
-    date: String,
-    time: String,
-    notes: String,
-    createdAt: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model("User", userSchema);
-const Job = mongoose.model("Job", jobSchema);
-const Interview = mongoose.model("Interview", interviewSchema);
 
 // ---------- AUTH MIDDLEWARE ----------
 function requireLogin(req, res, next) {
@@ -86,166 +52,284 @@ app.get("/logout", (req, res) => {
     });
 });
 
-// ---------- GRIDFS (RESUMES) ----------
-let gfs;
-const conn = mongoose.connection;
-
-conn.once("open", () => {
-    gfs = new mongoose.mongo.GridFSBucket(conn.db, { bucketName: "uploads" });
-});
-
-const gridFsStorage = new GridFsStorage({
-    url: mongoURI,
-    file: (req, file) => ({
-        filename: Date.now() + "-" + file.originalname,
-        bucketName: "uploads",
-    }),
-});
-
-const resumeUpload = multer({ storage: gridFsStorage });
-
-// ---------- PROFILE PICTURE UPLOAD (DISK) ----------
+// ---------- PROFILE PICTURES (DISK, OPTIONAL) ----------
 const profileDir = path.join(__dirname, "public/profile");
 if (!fs.existsSync(profileDir)) {
     fs.mkdirSync(profileDir, { recursive: true });
 }
-
-const avatarStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, profileDir);
-    },
-    filename: (req, file, cb) => {
-        const unique = Date.now() + "-" + file.originalname;
-        cb(null, unique);
-    }
+const profileUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, profileDir),
+        filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+    }),
 });
-
-const avatarUpload = multer({ storage: avatarStorage });
 
 app.use("/profile", express.static(profileDir));
 
-// ---------- AUTH ROUTES ----------
+// ---------- AUTH ROUTES (REGISTER / LOGIN) ----------
+
+// Register: expects FULL reg data
 app.post("/register", async (req, res) => {
-    const { fullName, email, password } = req.body;
+    try {
+        const {
+            firstName,
+            lastName,
+            birthday,
+            email,
+            occupation,
+            password,
+            street,
+            city,
+            state,
+            zip,
+            college,
+            certificate,
+            gradDate
+        } = req.body;
 
-    const exists = await User.findOne({ email });
-    if (exists) return res.json({ success: false, message: "Email already exists" });
+        // Check if email exists
+        const { data: existing, error: existingErr } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", email)
+            .maybeSingle();
 
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await new User({ fullName, email, password: hashed }).save();
+        if (existingErr) {
+            console.error(existingErr);
+            return res.json({ success: false, message: "Database error" });
+        }
 
-    res.json({ success: true, message: "Account created", userId: user._id });
+        if (existing) {
+            return res.json({ success: false, message: "Email already exists" });
+        }
+
+        const hashed = await bcrypt.hash(password, 10);
+
+        const { data: inserted, error: insertErr } = await supabase
+            .from("users")
+            .insert({
+                full_name: `${firstName} ${lastName}`,
+                email,
+                password: hashed,
+                birthday,
+                occupation,
+                street,
+                city,
+                state,
+                zip,
+                college,
+                certificate,
+                grad_date: gradDate
+            })
+            .select()
+            .single();
+
+        if (insertErr) {
+            console.error(insertErr);
+            return res.json({ success: false, message: "Could not create user" });
+        }
+
+        res.json({ success: true, message: "Account created", userId: inserted.id });
+    } catch (err) {
+        console.error(err);
+        res.json({ success: false, message: "Server error" });
+    }
 });
 
+// Login
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
-    const found = await User.findOne({ email });
-    if (!found) return res.json({ success: false, message: "User not found" });
+    const { data: user, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", email)
+        .single();
 
-    const match = await bcrypt.compare(password, found.password);
+    if (error || !user) {
+        return res.json({ success: false, message: "User not found" });
+    }
+
+    const match = await bcrypt.compare(password, user.password);
     if (!match) return res.json({ success: false, message: "Incorrect password" });
 
     req.session.user = {
-        _id: found._id,
-        fullName: found.fullName,
-        email: found.email,
-        profilePicPath: found.profilePicPath || null
+        _id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        birthday: user.birthday,
+        occupation: user.occupation,
+        street: user.street,
+        city: user.city,
+        state: user.state,
+        zip: user.zip,
+        college: user.college,
+        certificate: user.certificate,
+        gradDate: user.grad_date,
+        profilePicPath: user.profile_pic_url || null
     };
 
-    res.json({ success: true, message: "Logged in", fullName: found.fullName });
+    res.json({ success: true, message: "Logged in" });
 });
 
 // ---------- PROFILE PICTURE ROUTE ----------
-app.post("/profile-picture", requireLogin, avatarUpload.single("avatar"), async (req, res) => {
+app.post("/profile-picture", requireLogin, profileUpload.single("avatar"), async (req, res) => {
     if (!req.file) return res.json({ success: false, message: "Upload failed" });
 
     const filePath = "/profile/" + req.file.filename;
 
-    await User.findByIdAndUpdate(req.session.user._id, { profilePicPath: filePath });
+    // Save in DB
+    const { error } = await supabase
+        .from("users")
+        .update({ profile_pic_url: filePath })
+        .eq("id", req.session.user._id);
+
+    if (error) {
+        console.error(error);
+        return res.json({ success: false, message: "Could not update profile" });
+    }
+
     req.session.user.profilePicPath = filePath;
 
     res.json({ success: true, message: "Profile picture updated", path: filePath });
 });
 
-// ---------- RESUME UPLOAD + VIEW ----------
-app.post("/uploadResume", requireLogin, resumeUpload.single("resume"), (req, res) => {
-    if (!req.file) return res.json({ success: false, message: "Upload failed" });
+// ---------- RESUME UPLOAD (SUPABASE STORAGE) ----------
+const resumeUpload = multer({ storage: multer.memoryStorage() });
 
-    res.json({
-        success: true,
-        message: "Resume uploaded successfully",
-        file: req.file.filename,
-    });
-});
-
-app.get("/resumes", requireLogin, (req, res) => {
-    gfs.find().toArray((err, files) => {
-        if (!files || files.length === 0) {
-            return res.json({ success: false, message: "No files found" });
-        }
-        res.json({ success: true, files });
-    });
-});
-
-app.get("/resumes/file/:id", requireLogin, (req, res) => {
+app.post("/uploadResume", requireLogin, resumeUpload.single("resume"), async (req, res) => {
     try {
-        const id = new mongoose.Types.ObjectId(req.params.id);
-        gfs.find({ _id: id }).toArray((err, files) => {
-            if (!files || !files.length) {
-                return res.status(404).send("File not found");
-            }
-            res.set("Content-Type", files[0].contentType || "application/pdf");
-            gfs.openDownloadStream(id).pipe(res);
+        if (!req.file) return res.json({ success: false, message: "No file uploaded" });
+
+        const userId = req.session.user._id;
+        const file = req.file;
+        const filePath = `${userId}/${Date.now()}-${file.originalname}`;
+
+        // Upload to Supabase Storage
+        const { error: uploadErr } = await supabase.storage
+            .from("resumes")
+            .upload(filePath, file.buffer, { contentType: file.mimetype });
+
+        if (uploadErr) {
+            console.error(uploadErr);
+            return res.json({ success: false, message: "Error uploading resume" });
+        }
+
+        const { data: pub } = supabase.storage.from("resumes").getPublicUrl(filePath);
+        const fileUrl = pub.publicUrl;
+
+        // Insert metadata into resumes table
+        const { error: insertErr } = await supabase.from("resumes").insert({
+            user_id: userId,
+            file_name: file.originalname,
+            file_url: fileUrl
+        });
+
+        if (insertErr) {
+            console.error(insertErr);
+            return res.json({ success: false, message: "Error saving resume info" });
+        }
+
+        res.json({
+            success: true,
+            message: "Resume uploaded successfully",
+            fileUrl
         });
     } catch (e) {
-        return res.status(400).send("Invalid file id");
+        console.error(e);
+        res.json({ success: false, message: "Server error" });
     }
+});
+
+// List resumes for logged-in user
+app.get("/resumes", requireLogin, async (req, res) => {
+    const userId = req.session.user._id;
+
+    const { data, error } = await supabase
+        .from("resumes")
+        .select("*")
+        .eq("user_id", userId)
+        .order("uploaded_at", { ascending: false });
+
+    if (error || !data || !data.length) {
+        return res.json({ success: false, message: "No files found" });
+    }
+
+    res.json({ success: true, files: data });
 });
 
 // ---------- JOB TRACKER API ----------
 app.post("/api/jobs", requireLogin, async (req, res) => {
     const { title, company, status, date } = req.body;
-    const job = await Job.create({
-        userId: req.session.user._id,
-        title,
-        company,
-        status,
-        date,
-    });
-    res.json({ success: true, job });
+    const userId = req.session.user._id;
+
+    const { data, error } = await supabase
+        .from("jobs")
+        .insert({ user_id: userId, title, company, status, date })
+        .select()
+        .single();
+
+    if (error) {
+        console.error(error);
+        return res.json({ success: false, message: "Could not add job" });
+    }
+
+    res.json({ success: true, job: data });
 });
 
 app.get("/api/jobs", requireLogin, async (req, res) => {
-    const jobs = await Job.find({ userId: req.session.user._id }).sort({ createdAt: -1 });
-    res.json({ success: true, jobs });
-});
+    const userId = req.session.user._id;
+    const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
-app.delete("/api/jobs/:id", requireLogin, async (req, res) => {
-    await Job.deleteOne({ _id: req.params.id, userId: req.session.user._id });
-    res.json({ success: true });
+    if (error) {
+        console.error(error);
+        return res.json({ success: false, jobs: [] });
+    }
+
+    res.json({ success: true, jobs: data });
 });
 
 // ---------- INTERVIEW / CALENDAR API ----------
 app.post("/api/interviews", requireLogin, async (req, res) => {
     const { company, role, date, time, notes } = req.body;
-    const interview = await Interview.create({
-        userId: req.session.user._id,
-        company,
-        role,
-        date,
-        time,
-        notes
-    });
-    res.json({ success: true, interview });
+    const userId = req.session.user._id;
+
+    const { data, error } = await supabase
+        .from("interviews")
+        .insert({ user_id: userId, company, role, date, time, notes })
+        .select()
+        .single();
+
+    if (error) {
+        console.error(error);
+        return res.json({ success: false, message: "Could not add interview" });
+    }
+
+    res.json({ success: true, interview: data });
 });
 
 app.get("/api/interviews", requireLogin, async (req, res) => {
-    const interviews = await Interview.find({ userId: req.session.user._id }).sort({ date: 1, time: 1 });
-    res.json({ success: true, interviews });
+    const userId = req.session.user._id;
+
+    const { data, error } = await supabase
+        .from("interviews")
+        .select("*")
+        .eq("user_id", userId)
+        .order("date", { ascending: true });
+
+    if (error) {
+        console.error(error);
+        return res.json({ success: false, interviews: [] });
+    }
+
+    res.json({ success: true, interviews: data });
 });
 
-// ---------- JOB SUGGESTIONS (FAKE AI MATCHING) ----------
+// ---------- JOB SUGGESTIONS (STATIC) ----------
 app.get("/api/job-suggestions", requireLogin, async (req, res) => {
     const suggestions = [
         { title: "Junior Software Developer", company: "TechNova", location: "Remote" },
@@ -257,7 +341,7 @@ app.get("/api/job-suggestions", requireLogin, async (req, res) => {
     res.json({ success: true, suggestions });
 });
 
-// ---------- AI RESUME FORMATTER (SERVER-SIDE MOCK) ----------
+// ---------- AI RESUME FORMATTER (MOCK) ----------
 app.post("/api/format-resume", requireLogin, (req, res) => {
     const { text } = req.body;
     if (!text || !text.trim()) {
@@ -288,7 +372,26 @@ app.get("/api/news", async (req, res) => {
         }));
         res.json({ success: true, articles });
     } catch (err) {
+        console.error(err);
         res.json({ success: false, message: "Error fetching news" });
+    }
+});
+
+// ---------- COLLEGE SEARCH ----------
+app.get("/api/colleges", (req, res) => {
+    const search = (req.query.search || "").toLowerCase();
+    try {
+        const filePath = path.join(__dirname, "colleges.json");
+        const raw = fs.readFileSync(filePath, "utf-8");
+        const data = JSON.parse(raw);
+        const list = Array.isArray(data) ? data : (data.colleges || []);
+        const filtered = list
+            .filter(name => name.toLowerCase().includes(search))
+            .slice(0, 20);
+        res.json(filtered);
+    } catch (e) {
+        console.error("Error reading colleges.json", e);
+        res.json([]);
     }
 });
 
@@ -301,6 +404,4 @@ app.get("/dashboard.html", requireLogin, (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌍 Open your website at: http://localhost:${PORT}`);
-
 });
