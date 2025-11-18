@@ -41,7 +41,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
     session({
-        secret: "pathway-secret",
+        secret: process.env.SESSION_SECRET || "pathway-secret",
         resave: false,
         saveUninitialized: true,
         cookie: {
@@ -49,7 +49,6 @@ app.use(
         },
     })
 );
-
 
 // ---------- MULTER: PROFILE PICS (LOCAL DISK) ----------
 const profileDir = path.join(__dirname, "public/profile");
@@ -96,11 +95,6 @@ function getField(obj, ...names) {
     }
     return null;
 }
-
-// ---------- ROOT ----------
-app.get("/", (req, res) => {
-    res.redirect("/login.html");
-});
 
 // ---------- AUTH: REGISTER ----------
 app.post("/api/register", async (req, res) => {
@@ -240,8 +234,7 @@ app.post("/api/login", async (req, res) => {
             `${firstName} ${lastName}`.trim() ||
             email;
 
-        const birthday =
-            getField(user, "birthday", "birthdate", "dob") || null;
+        const birthday = getField(user, "birthday", "birthdate", "dob") || null;
         const occupation = getField(user, "occupation") || null;
         const street = getField(user, "street") || null;
         const city = getField(user, "city") || null;
@@ -250,8 +243,7 @@ app.post("/api/login", async (req, res) => {
         const college = getField(user, "college") || null;
         const certificate = getField(user, "certificate", "degree") || null;
         const gradDate =
-            getField(user, "gradDate", "graduationDate", "graduation_date") ||
-            null;
+            getField(user, "gradDate", "graduationDate", "graduation_date") || null;
         const profilePicPath = getField(user, "profilePicPath", "profile_pic") || null;
 
         // Save a rich object in the session
@@ -301,7 +293,10 @@ app.get("/check-session", async (req, res) => {
 
         if (error || !data) {
             // fallback to whatever is in the session
-            console.error("Supabase profile fetch error (fallback to session):", error);
+            console.error(
+                "Supabase profile fetch error (fallback to session):",
+                error
+            );
             return res.json({ loggedIn: true, user: req.session.user });
         }
 
@@ -540,8 +535,7 @@ app.post("/api/format-resume", requireLogin, (req, res) => {
         return l;
     });
 
-    const formattedText =
-        "Professional Summary:\n" + formattedLines.join("\n");
+    const formattedText = "Professional Summary:\n" + formattedLines.join("\n");
 
     res.json({ success: true, formattedText });
 });
@@ -719,4 +713,3 @@ app.listen(PORT, () => {
         console.log(`🌍 Local URL: http://localhost:${PORT}`);
     }
 });
-
