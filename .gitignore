@@ -3,3 +3,4 @@ uploads/
 users.json
 *.log
 .env
+.env copy
