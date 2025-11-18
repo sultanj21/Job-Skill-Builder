@@ -46,7 +46,7 @@
 </div>
 
 <script>
-    // Toggle password visibility
+    // 👁️ Toggle password visibility
     document.getElementById("toggleLoginPass").addEventListener("click", () => {
         const passwordInput = document.getElementById("password");
         const icon = document.getElementById("toggleLoginPass");
@@ -55,7 +55,7 @@
         icon.textContent = show ? "🔓" : "👁️";
     });
 
-    // Handle login submission
+    // 🚀 Handle login submission
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -76,17 +76,11 @@
 
             const data = await res.json();
 
-            if (!data.success) {
+            if (!res.ok || !data.success) {
                 message.style.color = "red";
                 message.textContent = `❌ ${data.message || "Invalid email or password"}`;
                 return;
             }
-
-            // Save user info locally (optional)
-            localStorage.setItem("loggedUser", JSON.stringify({
-                ...data.user,
-                lastLogin: new Date().toISOString()
-            }));
 
             message.style.color = "green";
             message.textContent = "✅ Login successful! Redirecting...";

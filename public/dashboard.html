@@ -1,461 +1,670 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Pathway Dashboard</title>
+    <link rel="stylesheet" href="style.css"/>
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f0f2f5;
-            display: flex;
+        body{
+            display:flex;
+            min-height:100vh;
+            margin:0;
+            font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
         }
-        #sidebar {
-            width: 240px;
-            height: 100vh;
-            background: #ffffff;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            padding-top: 25px;
-            position: fixed;
+        .sidebar{
+            width:230px;
+            background:#0f172a;
+            color:#f9fafb;
+            padding:18px 16px;
+            display:flex;
+            flex-direction:column;
         }
-        #sidebar h2 {
-            text-align: center;
-            margin-top: 0;
+        .brand{
+            font-size:22px;
+            font-weight:800;
+            margin-bottom:20px;
         }
-        .side-item {
-            padding: 15px 25px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #333;
+        .nav-item{
+            padding:10px 12px;
+            border-radius:8px;
+            cursor:pointer;
+            margin-bottom:4px;
+            font-size:14px;
+            display:flex;
+            align-items:center;
+            gap:8px;
+            color:#e5e7eb;
         }
-        .side-item:hover {
-            background: #f0f0f0;
+        .nav-item.active,
+        .nav-item:hover{
+            background:#1d283a;
+            color:#fff;
         }
-        .side-item.active {
-            background: #0078ff;
-            color: white;
+        .nav-footer{
+            margin-top:auto;
+            font-size:13px;
+            color:#9ca3af;
         }
-        #content {
-            margin-left: 260px;
-            padding: 25px;
-            width: 100%;
+        .nav-footer button{
+            width:100%;
+            margin-top:8px;
+            background:#ef4444;
+            border:none;
+            padding:8px 10px;
+            border-radius:6px;
+            color:#fff;
+            cursor:pointer;
+            font-size:13px;
         }
-        .section {
-            display: none;
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.1);
-            margin-bottom: 25px;
+
+        .main{
+            flex:1;
+            background:#f3f4f6;
+            padding:20px;
+            overflow-y:auto;
         }
-        body.dark {
-            background: #181818;
-            color: white;
+
+        .card{
+            background:#fff;
+            border-radius:16px;
+            padding:20px 22px;
+            box-shadow:0 10px 25px rgba(15,23,42,.08);
+            margin-bottom:18px;
         }
-        body.dark #sidebar {
-            background: #202020;
-            color: white;
+
+        .section-title{
+            font-size:20px;
+            font-weight:700;
+            margin:0 0 10px;
         }
-        body.dark .section {
-            background: #242424;
-            color: white;
+        .muted{color:#6b7280;font-size:14px;}
+
+        .personal-grid{
+            display:grid;
+            grid-template-columns: minmax(0,2.1fr) minmax(0,1fr);
+            gap:20px;
+            align-items:flex-start;
         }
-        .dark-toggle {
-            background: #0078ff;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 6px;
-            cursor: pointer;
+        .personal-grid img{
+            width:90px;height:90px;border-radius:999px;object-fit:cover;
+            border:3px solid #4f46e5;
         }
-        #jobList, #interviewList, #suggestionsList {
-            margin-top: 15px;
+
+        .kv-row{margin:4px 0;font-size:14px;}
+        .kv-row b{color:#111827;margin-right:4px;}
+
+        /* Resume list */
+        #resumeList li{
+            font-size:14px;
+            margin:4px 0;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:12px;
         }
-        .job-item, .interview-item, .suggestion-item {
-            background: #f3f3f3;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
+        #resumeList a{text-decoration:none;color:#2563eb;word-break:break-all;}
+        #resumeList span{font-size:11px;color:#6b7280;}
+
+        .tab{
+            display:none;
         }
-        body.dark .job-item,
-        body.dark .interview-item,
-        body.dark .suggestion-item {
-            background: #333;
+        .tab.active{
+            display:block;
         }
-        #profilePic {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #0078ff;
+
+        textarea{
+            width:100%;
+            min-height:140px;
+            resize:vertical;
+            padding:10px 12px;
+            border-radius:10px;
+            border:1px solid #d1d5db;
+            font-family:inherit;
+            font-size:14px;
         }
-        #resumeViewer {
-            width: 100%;
-            height: 400px;
-            border: 1px solid #ddd;
-            margin-top: 10px;
+        table{
+            width:100%;
+            border-collapse:collapse;
+            font-size:13px;
+            margin-top:8px;
         }
-        button {
-            cursor: pointer;
+        th,td{
+            padding:6px 8px;
+            border-bottom:1px solid #e5e7eb;
+            text-align:left;
+        }
+        th{background:#f9fafb;font-weight:600;font-size:12px;}
+        .pill{font-size:11px;padding:2px 7px;border-radius:999px;background:#e5e7ff;color:#4338ca;}
+        .tag{
+            display:inline-block;
+            background:#ecfeff;
+            color:#0e7490;
+            border-radius:999px;
+            padding:3px 8px;
+            font-size:11px;
+            margin:2px 2px 0 0;
         }
     </style>
 </head>
 <body>
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="brand">Pathway</div>
+    <div class="nav-item active" data-target="tab-personal">👤 Personal Info</div>
+    <div class="nav-item" data-target="tab-resume">📄 Resume Upload</div>
+    <div class="nav-item" data-target="tab-formatter">✨ AI Resume Formatter</div>
+    <div class="nav-item" data-target="tab-jobs">🧭 Job Tracker</div>
+    <div class="nav-item" data-target="tab-interviews">🎤 Interviews</div>
+    <div class="nav-item" data-target="tab-settings">⚙️ Settings</div>
 
-<div id="sidebar">
-    <h2>Pathway</h2>
-    <div class="side-item active" onclick="showSection('personal', this)">👤 Personal Info</div>
-    <div class="side-item" onclick="showSection('resume', this)">📄 Resume Upload</div>
-    <div class="side-item" onclick="showSection('ai', this)">🤖 AI Resume Formatter</div>
-    <div class="side-item" onclick="showSection('tracker', this)">📌 Job Tracker</div>
-    <div class="side-item" onclick="showSection('settings', this)">⚙️ Settings</div>
-    <br/><br/>
-    <div style="text-align:center;">
-        <button class="dark-toggle" onclick="toggleDark()">🌙 Dark Mode</button>
+    <div class="nav-footer">
+        Logged in as <span id="navEmail">...</span>
+        <button id="logoutBtn">Log out</button>
     </div>
 </div>
 
-<div id="content">
+<!-- MAIN AREA -->
+<div class="main">
+    <!-- PERSONAL INFO TAB -->
+    <div class="tab active" id="tab-personal">
+        <div class="card">
+            <h2 class="section-title">Your Personal Information</h2>
+            <p class="muted">We pulled this from your registration details.</p>
+            <div class="personal-grid">
+                <div id="personalInfoText">
+                    <!-- filled by JS -->
+                </div>
+                <div>
+                    <img id="profilePic" src="https://via.placeholder.com/90" alt="Profile picture">
+                    <form id="avatarForm" style="margin-top:8px;">
+                        <input type="file" id="avatarInput" name="avatar" accept="image/*" />
+                        <button type="submit" style="margin-top:6px;">Update Picture</button>
+                        <div id="avatarMsg" class="muted"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-    <!-- PERSONAL INFO -->
-    <div id="personal" class="section" style="display:block;">
-        <h2>Your Personal Information</h2>
-        <img id="profilePic" src="" alt="Profile Picture"
-             onerror="this.src='https://via.placeholder.com/80'">
-        <div id="personalData" style="margin-top:15px;"></div>
+        <div class="card">
+            <h3 class="section-title" style="font-size:18px;">College & Graduation</h3>
+            <div id="collegeInfoText"></div>
+        </div>
     </div>
 
-    <!-- RESUME UPLOAD + VIEWER -->
-    <div id="resume" class="section">
-        <h2>Upload Your Resume</h2>
-        <form id="resumeForm">
-            <input type="file" name="resume" required><br/><br/>
-            <button type="submit">Upload</button>
-        </form>
-        <p id="uploadResult"></p>
+    <!-- RESUME TAB -->
+    <div class="tab" id="tab-resume">
+        <div class="card">
+            <h2 class="section-title">Resume Upload</h2>
+            <p class="muted">Upload PDFs or Word documents. They’ll be stored in your Supabase storage.</p>
 
-        <h3>Your Uploaded Resumes</h3>
-        <div id="resumeList"></div>
-        <iframe id="resumeViewer"></iframe>
+            <form id="resumeForm" enctype="multipart/form-data" style="margin-top:6px;">
+                <input type="file" id="resumeInput" name="resume" accept=".pdf,.doc,.docx,.txt"/>
+                <button type="submit" style="margin-top:8px;">Upload Resume</button>
+                <div id="resumeMsg" class="muted"></div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3 class="section-title" style="font-size:18px;">Your Resumes</h3>
+            <ul id="resumeList"></ul>
+        </div>
     </div>
 
-    <!-- AI RESUME FORMATTER -->
-    <div id="ai" class="section">
-        <h2>AI Resume Formatter</h2>
-        <textarea id="resumeText" style="width:100%;height:200px;"></textarea><br/><br/>
-        <button onclick="formatResume()">Format Resume</button>
-        <h3>Formatted Output:</h3>
-        <div id="aiResult" style="white-space:pre-wrap;"></div>
+    <!-- FORMATTER TAB -->
+    <div class="tab" id="tab-formatter">
+        <div class="card">
+            <h2 class="section-title">AI Resume Formatter (Simple)</h2>
+            <p class="muted">Paste raw bullets or text and we’ll normalize them into a clean bullet list.</p>
+
+            <div class="form-group">
+                <label for="rawResume">Paste resume text</label>
+                <textarea id="rawResume" placeholder="- did something
+- did another thing"></textarea>
+            </div>
+            <button id="formatBtn">Format</button>
+            <p id="formatMsg" class="muted"></p>
+
+            <div style="margin-top:16px;">
+                <label><b>Formatted output</b></label>
+                <pre id="formattedResume" style="white-space:pre-wrap;background:#f9fafb;border-radius:10px;padding:10px 12px;font-size:13px;"></pre>
+            </div>
+        </div>
     </div>
 
-    <!-- JOB TRACKER + INTERVIEW CALENDAR + SUGGESTIONS -->
-    <div id="tracker" class="section">
-        <h2>Job Application Tracker</h2>
+    <!-- JOB TRACKER TAB -->
+    <div class="tab" id="tab-jobs">
+        <div class="card">
+            <h2 class="section-title">Job Applications</h2>
+            <p class="muted">Track the positions you’ve applied to.</p>
 
-        <input id="jobTitle" placeholder="Job Title" style="width:48%; padding:8px;">
-        <input id="jobCompany" placeholder="Company" style="width:48%; padding:8px;"><br/><br/>
-        <input id="jobStatus" placeholder="Status: Applied, Interview, Offer" style="width:48%; padding:8px;">
-        <input id="jobDate" type="date" style="width:48%; padding:8px;"><br/><br/>
-        <button onclick="addJob()">Add Job</button>
+            <form id="jobForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
+                <div class="form-group">
+                    <label for="jobTitle">Title</label>
+                    <input id="jobTitle" type="text" placeholder="Software Engineer"/>
+                </div>
+                <div class="form-group">
+                    <label for="jobCompany">Company</label>
+                    <input id="jobCompany" type="text" placeholder="Company name"/>
+                </div>
+                <div class="form-group">
+                    <label for="jobStatus">Status</label>
+                    <select id="jobStatus">
+                        <option value="Applied">Applied</option>
+                        <option value="Phone Screen">Phone Screen</option>
+                        <option value="Onsite">Onsite</option>
+                        <option value="Offer">Offer</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="jobDate">Date</label>
+                    <input id="jobDate" type="date"/>
+                </div>
+                <div style="align-self:end;">
+                    <button type="submit">Add Job</button>
+                </div>
+            </form>
+            <p id="jobMsg" class="muted"></p>
+        </div>
 
-        <h3>Saved Jobs</h3>
-        <div id="jobList"></div>
-
-        <hr/>
-
-        <h2>Interview Scheduler</h2>
-        <input id="intCompany" placeholder="Company" style="width:48%; padding:8px;">
-        <input id="intRole" placeholder="Role" style="width:48%; padding:8px;"><br/><br/>
-        <input id="intDate" type="date" style="width:48%; padding:8px;">
-        <input id="intTime" type="time" style="width:48%; padding:8px;"><br/><br/>
-        <textarea id="intNotes" placeholder="Notes" style="width:100%;height:80px;"></textarea><br/><br/>
-        <button onclick="addInterview()">Add Interview</button>
-
-        <h3>Upcoming Interviews</h3>
-        <div id="interviewList"></div>
-
-        <hr/>
-
-        <h2>AI Job Suggestions</h2>
-        <div id="suggestionsList"></div>
+        <div class="card">
+            <h3 class="section-title" style="font-size:18px;">Job List</h3>
+            <table id="jobsTable">
+                <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Company</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
-    <!-- SETTINGS -->
-    <div id="settings" class="section">
-        <h2>Settings</h2>
+    <!-- INTERVIEWS TAB -->
+    <div class="tab" id="tab-interviews">
+        <div class="card">
+            <h2 class="section-title">Interviews</h2>
+            <p class="muted">Keep track of upcoming interviews and notes.</p>
 
-        <h3>Update Profile Picture</h3>
-        <form id="avatarForm">
-            <input type="file" name="avatar" required><br/><br/>
-            <button type="submit">Upload Picture</button>
-        </form>
-        <p id="avatarResult"></p>
+            <form id="interviewForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
+                <div class="form-group">
+                    <label for="intCompany">Company</label>
+                    <input id="intCompany" type="text" placeholder="Company"/>
+                </div>
+                <div class="form-group">
+                    <label for="intRole">Role</label>
+                    <input id="intRole" type="text" placeholder="Job role"/>
+                </div>
+                <div class="form-group">
+                    <label for="intDate">Date</label>
+                    <input id="intDate" type="date"/>
+                </div>
+                <div class="form-group">
+                    <label for="intTime">Time</label>
+                    <input id="intTime" type="time"/>
+                </div>
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label for="intNotes">Notes</label>
+                    <input id="intNotes" type="text" placeholder="Zoom link, who you’re talking to, etc."/>
+                </div>
+                <div style="align-self:end;">
+                    <button type="submit">Add Interview</button>
+                </div>
+            </form>
+            <p id="intMsg" class="muted"></p>
+        </div>
 
-        <hr/>
-        <button onclick="logout()">Logout</button>
+        <div class="card">
+            <h3 class="section-title" style="font-size:18px;">Upcoming Interviews</h3>
+            <table id="interviewsTable">
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Company</th>
+                    <th>Role</th>
+                    <th>Notes</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
+    <!-- SETTINGS TAB -->
+    <div class="tab" id="tab-settings">
+        <div class="card">
+            <h2 class="section-title">Settings</h2>
+            <p class="muted">Basic account info is read-only for now. Use registration for new accounts.</p>
+            <div id="settingsInfo"></div>
+        </div>
+    </div>
 </div>
 
 <script>
-    function showSection(section, btn) {
-        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-        document.querySelectorAll('.side-item').forEach(b => b.classList.remove('active'));
-        document.getElementById(section).style.display = 'block';
-        btn.classList.add('active');
-    }
+    // ---------------- NAV TABS ----------------
+    const navItems = document.querySelectorAll(".nav-item");
+    const tabs = document.querySelectorAll(".tab");
 
-    function toggleDark() {
-        document.body.classList.toggle('dark');
-    }
+    navItems.forEach(item => {
+        item.addEventListener("click", () => {
+            navItems.forEach(i => i.classList.remove("active"));
+            item.classList.add("active");
+            const target = item.getAttribute("data-target");
+            tabs.forEach(t => t.classList.toggle("active", t.id === target));
+        });
+    });
 
-    // ---- SESSION + PERSONAL INFO ----
-    fetch('/check-session')
-        .then(res => res.json())
-        .then(data => {
+    // ---------------- LOAD SESSION / USER ----------------
+    async function loadSession() {
+        try {
+            const res = await fetch("/check-session");
+            const data = await res.json();
+
             if (!data.loggedIn) {
                 window.location.href = "/login.html";
-            } else {
-                const u = data.user || {};
-                document.getElementById("personalData").innerHTML = `
-          <p><b>Name:</b> ${u.fullName || "N/A"}</p>
-          <p><b>Email:</b> ${u.email || "N/A"}</p>
-          <p><b>Birthday:</b> ${u.birthday || "Not provided"}</p>
-          <p><b>Occupation:</b> ${u.occupation || "Not provided"}</p>
-          <h3>Address</h3>
-          <p><b>Street:</b> ${u.street || ""}</p>
-          <p><b>City:</b> ${u.city || ""}</p>
-          <p><b>State:</b> ${u.state || ""}</p>
-          <p><b>ZIP:</b> ${u.zip || ""}</p>
-          <h3>College Information</h3>
-          <p><b>College:</b> ${u.college || ""}</p>
-          <p><b>Degree:</b> ${u.certificate || ""}</p>
-          <p><b>Graduation:</b> ${u.gradDate || ""}</p>
-        `;
-                if (u.profilePicPath) {
-                    document.getElementById("profilePic").src = u.profilePicPath;
-                } else {
-                    document.getElementById("profilePic").src = "https://via.placeholder.com/80";
-                }
-                loadJobs();
-                loadInterviews();
-                loadSuggestions();
-                loadResumes();
+                return;
             }
-        });
 
-    // ---- RESUME UPLOAD + LIST + VIEWER ----
-    document.getElementById("resumeForm").onsubmit = async (e) => {
-        e.preventDefault();
-        let formData = new FormData(e.target);
+            const u = data.user || {};
+            const fullName = u.fullName || `${u.firstName || ""} ${u.lastName || ""}`.trim() || "Not provided";
 
-        let res = await fetch("/uploadResume", {
-            method: "POST",
-            body: formData
-        });
+            document.getElementById("navEmail").textContent = u.email || "unknown";
 
-        let out = await res.json();
-        document.getElementById("uploadResult").innerText = out.message;
-        if (out.success) loadResumes();
-    };
+            // Personal info block
+            const personalHtml = `
+        <div class="kv-row"><b>Name:</b> ${fullName}</div>
+        <div class="kv-row"><b>Email:</b> ${u.email || "Not provided"}</div>
+        <div class="kv-row"><b>Birthday:</b> ${u.birthday || "Not provided"}</div>
+        <div class="kv-row"><b>Occupation:</b> ${u.occupation || "Not provided"}</div>
 
-    async function loadResumes() {
-        const res = await fetch("/resumes");
-        const data = await res.json();
-        const list = document.getElementById("resumeList");
-        list.innerHTML = "";
-
-        if (!data.success || !data.files.length) {
-            list.innerText = "No resumes uploaded yet.";
-            return;
-        }
-
-        data.files.forEach(file => {
-            const div = document.createElement("div");
-            div.className = "job-item";
-            div.innerHTML = `
-        <b>${file.name}</b><br>
-        Uploaded: ${file.createdAt ? new Date(file.createdAt).toLocaleString() : "N/A"}<br>
-        <button onclick="viewResume('${file.url}')">View</button>
+        <h4 style="margin-top:14px;margin-bottom:4px;">Address</h4>
+        <div class="kv-row"><b>Street:</b> ${u.street || ""}</div>
+        <div class="kv-row"><b>City:</b> ${u.city || ""}</div>
+        <div class="kv-row"><b>State:</b> ${u.state || ""}</div>
+        <div class="kv-row"><b>ZIP:</b> ${u.zip || ""}</div>
       `;
-            list.appendChild(div);
-        });
-    }
+            document.getElementById("personalInfoText").innerHTML = personalHtml;
 
-    function viewResume(url) {
-        document.getElementById("resumeViewer").src = url;
-    }
+            const collegeHtml = `
+        <div class="kv-row"><b>College:</b> ${u.college || "Not provided"}</div>
+        <div class="kv-row"><b>Degree:</b> ${u.certificate || "Not provided"}</div>
+        <div class="kv-row"><b>Graduation:</b> ${u.gradDate || "Not provided"}</div>
+      `;
+            document.getElementById("collegeInfoText").innerHTML = collegeHtml;
 
-    // ---- AI RESUME FORMATTER ----
-    async function formatResume() {
-        const text = document.getElementById("resumeText").value;
-        if (!text.trim()) {
-            alert("Paste your resume first!");
-            return;
-        }
-        const res = await fetch("/api/format-resume", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text })
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById("aiResult").innerText = data.formattedText;
-        } else {
-            document.getElementById("aiResult").innerText = data.message || "Error formatting resume.";
-        }
-    }
+            if (u.profilePicPath) {
+                document.getElementById("profilePic").src = u.profilePicPath;
+            }
 
-    // ---- JOB TRACKER ----
-    async function addJob() {
-        let title = document.getElementById("jobTitle").value;
-        let company = document.getElementById("jobCompany").value;
-        let status = document.getElementById("jobStatus").value;
-        let date = document.getElementById("jobDate").value;
+            // Settings view
+            document.getElementById("settingsInfo").innerHTML = `
+        <div class="kv-row"><b>User ID:</b> ${u.id || "(hidden)"}</div>
+        <div class="kv-row"><b>Email:</b> ${u.email || ""}</div>
+        <div class="kv-row"><b>Name:</b> ${fullName}</div>
+      `;
 
-        if (!title || !company || !status) {
-            alert("Fill all job fields");
-            return;
-        }
-
-        const res = await fetch("/api/jobs", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ title, company, status, date })
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById("jobTitle").value = "";
-            document.getElementById("jobCompany").value = "";
-            document.getElementById("jobStatus").value = "";
-            document.getElementById("jobDate").value = "";
+            // Load the other data
+            loadResumes();
             loadJobs();
-        }
-    }
-
-    async function loadJobs() {
-        const res = await fetch("/api/jobs");
-        const data = await res.json();
-        const list = document.getElementById("jobList");
-        list.innerHTML = "";
-
-        if (!data.success || !data.jobs.length) {
-            list.innerText = "No jobs added yet.";
-            return;
-        }
-
-        data.jobs.forEach(job => {
-            const div = document.createElement("div");
-            div.className = "job-item";
-            div.innerHTML = `
-        <b>${job.title}</b> at ${job.company}<br>
-        Status: ${job.status || ""}<br>
-        Date: ${job.date || "N/A"}
-      `;
-            list.appendChild(div);
-        });
-    }
-
-    // ---- INTERVIEW SCHEDULER ----
-    async function addInterview() {
-        let company = document.getElementById("intCompany").value;
-        let role = document.getElementById("intRole").value;
-        let date = document.getElementById("intDate").value;
-        let time = document.getElementById("intTime").value;
-        let notes = document.getElementById("intNotes").value;
-
-        if (!company || !role || !date || !time) {
-            alert("Fill all interview fields");
-            return;
-        }
-
-        const res = await fetch("/api/interviews", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ company, role, date, time, notes })
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById("intCompany").value = "";
-            document.getElementById("intRole").value = "";
-            document.getElementById("intDate").value = "";
-            document.getElementById("intTime").value = "";
-            document.getElementById("intNotes").value = "";
             loadInterviews();
+        } catch (err) {
+            console.error("check-session failed:", err);
+            window.location.href = "/login.html";
         }
     }
 
-    async function loadInterviews() {
-        const res = await fetch("/api/interviews");
-        const data = await res.json();
-        const list = document.getElementById("interviewList");
-        list.innerHTML = "";
-
-        if (!data.success || !data.interviews.length) {
-            list.innerText = "No interviews scheduled yet.";
-            return;
-        }
-
-        data.interviews.forEach(int => {
-            const div = document.createElement("div");
-            div.className = "interview-item";
-            div.innerHTML = `
-        <b>${int.company}</b> - ${int.role}<br>
-        ${int.date || ""} at ${int.time || ""}<br>
-        Notes: ${int.notes || "None"}
-      `;
-            list.appendChild(div);
-        });
-    }
-
-    // ---- JOB SUGGESTIONS ----
-    async function loadSuggestions() {
-        const res = await fetch("/api/job-suggestions");
-        const data = await res.json();
-        const list = document.getElementById("suggestionsList");
-        list.innerHTML = "";
-
-        if (!data.success) {
-            list.innerText = "Error getting suggestions.";
-            return;
-        }
-
-        data.suggestions.forEach(s => {
-            const div = document.createElement("div");
-            div.className = "suggestion-item";
-            div.innerHTML = `
-        <b>${s.title}</b><br>
-        Company: ${s.company}<br>
-        Location: ${s.location}
-      `;
-            list.appendChild(div);
-        });
-    }
-
-    // ---- PROFILE PICTURE ----
-    document.getElementById("avatarForm").onsubmit = async (e) => {
-        e.preventDefault();
-        let formData = new FormData(e.target);
-
-        const res = await fetch("/profile-picture", {
-            method: "POST",
-            body: formData
-        });
-
-        const data = await res.json();
-        document.getElementById("avatarResult").innerText = data.message;
-
-        if (data.success && data.path) {
-            document.getElementById("profilePic").src = data.path;
-        }
-    };
-
-    // ---- LOGOUT ----
-    async function logout() {
-        await fetch('/logout');
+    // ---------------- LOGOUT ----------------
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+        try {
+            await fetch("/logout");
+        } catch (e) { }
         window.location.href = "/login.html";
-    }
-</script>
+    });
 
+    // ---------------- PROFILE PIC UPLOAD ----------------
+    document.getElementById("avatarForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById("avatarMsg");
+        const fileInput = document.getElementById("avatarInput");
+        if (!fileInput.files.length) {
+            msg.textContent = "Please pick a file first.";
+            return;
+        }
+        msg.textContent = "Uploading...";
+        try {
+            const fd = new FormData();
+            fd.append("avatar", fileInput.files[0]);
+            const res = await fetch("/profile-picture", {
+                method: "POST",
+                body: fd
+            });
+            const data = await res.json();
+            if (!data.success) {
+                msg.textContent = data.message || "Upload failed";
+                return;
+            }
+            document.getElementById("profilePic").src = data.path;
+            msg.textContent = "✅ Updated!";
+        } catch (err) {
+            console.error(err);
+            msg.textContent = "Error uploading picture.";
+        }
+    });
+
+    // ---------------- RESUME UPLOAD + LIST ----------------
+    async function loadResumes() {
+        const list = document.getElementById("resumeList");
+        list.innerHTML = "<li class='muted'>Loading...</li>";
+        try {
+            const res = await fetch("/resumes");
+            const data = await res.json();
+            if (!data.success) {
+                list.innerHTML = "<li class='muted'>Could not load resumes.</li>";
+                return;
+            }
+            if (!data.files || data.files.length === 0) {
+                list.innerHTML = "<li class='muted'>No resumes uploaded yet.</li>";
+                return;
+            }
+            list.innerHTML = "";
+            data.files.forEach(f => {
+                const li = document.createElement("li");
+                const date = f.createdAt ? new Date(f.createdAt).toLocaleString() : "";
+                li.innerHTML = `<a href="${f.url}" target="_blank">${f.name}</a><span>${date}</span>`;
+                list.appendChild(li);
+            });
+        } catch (err) {
+            console.error("loadResumes error:", err);
+            list.innerHTML = "<li class='muted'>Error loading resumes.</li>";
+        }
+    }
+
+    document.getElementById("resumeForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById("resumeMsg");
+        const fileInput = document.getElementById("resumeInput");
+        if (!fileInput.files.length) {
+            msg.textContent = "Choose a file first.";
+            return;
+        }
+        msg.textContent = "Uploading...";
+        try {
+            const fd = new FormData();
+            fd.append("resume", fileInput.files[0]);
+            const res = await fetch("/uploadResume", { method:"POST", body: fd });
+            const data = await res.json();
+            if (!data.success) {
+                msg.textContent = data.message || "Upload failed.";
+                return;
+            }
+            msg.textContent = "✅ Uploaded!";
+            fileInput.value = "";
+            loadResumes();
+        } catch (err) {
+            console.error("upload resume error:", err);
+            msg.textContent = "Error uploading resume.";
+        }
+    });
+
+    // ---------------- FORMATTER ----------------
+    document.getElementById("formatBtn").addEventListener("click", async () => {
+        const raw = document.getElementById("rawResume").value;
+        const msg = document.getElementById("formatMsg");
+        msg.textContent = "Formatting...";
+        try {
+            const res = await fetch("/api/format-resume", {
+                method: "POST",
+                headers: { "Content-Type":"application/json" },
+                body: JSON.stringify({ text: raw })
+            });
+            const data = await res.json();
+            if (!data.success) {
+                msg.textContent = data.message || "Could not format text.";
+                return;
+            }
+            msg.textContent = "✅ Done!";
+            document.getElementById("formattedResume").textContent = data.formattedText;
+        } catch (err) {
+            console.error(err);
+            msg.textContent = "Error calling formatter.";
+        }
+    });
+
+    // ---------------- JOBS ----------------
+    async function loadJobs() {
+        const tbody = document.querySelector("#jobsTable tbody");
+        tbody.innerHTML = "<tr><td colspan='4' class='muted'>Loading...</td></tr>";
+        try {
+            const res = await fetch("/api/jobs");
+            const data = await res.json();
+            if (!data.success) {
+                tbody.innerHTML = "<tr><td colspan='4' class='muted'>Could not load jobs.</td></tr>";
+                return;
+            }
+            const jobs = data.jobs || [];
+            if (!jobs.length) {
+                tbody.innerHTML = "<tr><td colspan='4' class='muted'>No jobs yet.</td></tr>";
+                return;
+            }
+            tbody.innerHTML = "";
+            jobs.forEach(j => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+          <td>${j.title || ""}</td>
+          <td>${j.company || ""}</td>
+          <td><span class="pill">${j.status || ""}</span></td>
+          <td>${j.date || ""}</td>
+        `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error("loadJobs error:", err);
+            tbody.innerHTML = "<tr><td colspan='4' class='muted'>Error loading jobs.</td></tr>";
+        }
+    }
+
+    document.getElementById("jobForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const job = {
+            title: document.getElementById("jobTitle").value.trim(),
+            company: document.getElementById("jobCompany").value.trim(),
+            status: document.getElementById("jobStatus").value,
+            date: document.getElementById("jobDate").value || null
+        };
+        const msg = document.getElementById("jobMsg");
+        msg.textContent = "Saving...";
+        try {
+            const res = await fetch("/api/jobs", {
+                method:"POST",
+                headers:{ "Content-Type":"application/json" },
+                body: JSON.stringify(job)
+            });
+            const data = await res.json();
+            if (!data.success) {
+                msg.textContent = data.message || "Could not add job.";
+                return;
+            }
+            msg.textContent = "✅ Added!";
+            e.target.reset();
+            loadJobs();
+        } catch (err) {
+            console.error("add job error:", err);
+            msg.textContent = "Error adding job.";
+        }
+    });
+
+    // ---------------- INTERVIEWS ----------------
+    async function loadInterviews() {
+        const tbody = document.querySelector("#interviewsTable tbody");
+        tbody.innerHTML = "<tr><td colspan='5' class='muted'>Loading...</td></tr>";
+        try {
+            const res = await fetch("/api/interviews");
+            const data = await res.json();
+            if (!data.success) {
+                tbody.innerHTML = "<tr><td colspan='5' class='muted'>Could not load interviews.</td></tr>";
+                return;
+            }
+            const list = data.interviews || [];
+            if (!list.length) {
+                tbody.innerHTML = "<tr><td colspan='5' class='muted'>No interviews yet.</td></tr>";
+                return;
+            }
+            tbody.innerHTML = "";
+            list.forEach(i => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+          <td>${i.date || ""}</td>
+          <td>${i.time || ""}</td>
+          <td>${i.company || ""}</td>
+          <td>${i.role || ""}</td>
+          <td>${i.notes || ""}</td>
+        `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error("loadInterviews error:", err);
+            tbody.innerHTML = "<tr><td colspan='5' class='muted'>Error loading interviews.</td></tr>";
+        }
+    }
+
+    document.getElementById("interviewForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const payload = {
+            company: document.getElementById("intCompany").value.trim(),
+            role: document.getElementById("intRole").value.trim(),
+            date: document.getElementById("intDate").value || null,
+            time: document.getElementById("intTime").value || null,
+            notes: document.getElementById("intNotes").value.trim() || null
+        };
+        const msg = document.getElementById("intMsg");
+        msg.textContent = "Saving...";
+        try {
+            const res = await fetch("/api/interviews", {
+                method:"POST",
+                headers:{ "Content-Type":"application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!data.success) {
+                msg.textContent = data.message || "Could not add interview.";
+                return;
+            }
+            msg.textContent = "✅ Added!";
+            e.target.reset();
+            loadInterviews();
+        } catch (err) {
+            console.error("add interview error:", err);
+            msg.textContent = "Error adding interview.";
+        }
+    });
+
+    // ---------------- INIT ----------------
+    loadSession();
+</script>
 </body>
 </html>
