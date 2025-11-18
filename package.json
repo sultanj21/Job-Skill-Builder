@@ -10,6 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@supabase/auth-js": "^2.83.0",
+    "@supabase/functions-js": "^2.83.0",
+    "@supabase/postgrest-js": "^2.83.0",
+    "@supabase/realtime-js": "^2.83.0",
+    "@supabase/storage-js": "^2.83.0",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
@@ -25,4 +30,3 @@
     "pdf-parse": "^2.4.5"
   }
 }
-
