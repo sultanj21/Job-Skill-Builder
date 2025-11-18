@@ -1,73 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Register · Address</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8" />
+  <title>Register – Address</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-<div class="container">
-  <h2>Step 2 · Address</h2>
-  <div class="progress"><span style="width:66%"></span></div>
+<body class="page auth-page">
+<header class="top-bar">
+  <div class="logo">Pathway</div>
+  <nav>
+    <a href="login.html">Login</a>
+  </nav>
+</header>
 
-  <form id="addressForm">
-    <div class="form-group">
-      <label for="street">Street</label>
-      <input id="street" type="text" placeholder="123 Main St"/>
-      <div class="error" id="errStreet">Street is required</div>
-    </div>
-    <div class="form-group">
-      <label for="city">City</label>
-      <input id="city" type="text" placeholder="City"/>
-      <div class="error" id="errCity">City is required</div>
-    </div>
-    <div class="form-group">
-      <label for="state">State</label>
-      <input id="state" type="text" placeholder="State"/>
-      <div class="error" id="errState">State is required</div>
-    </div>
-    <div class="form-group">
-      <label for="zip">ZIP</label>
-      <input id="zip" type="text" placeholder="ZIP / Postal Code"/>
-      <div class="error" id="errZip">ZIP is required</div>
-    </div>
+<main class="auth-container">
+  <div class="auth-card">
+    <h2>Step 2 of 3 – Address</h2>
+    <form id="addressForm">
+      <div class="form-group">
+        <label for="street">Street</label>
+        <input id="street" name="street" />
+      </div>
 
-    <button type="button" id="nextBtn" disabled>Next → College</button>
-    <p id="message" class="hidden"></p>
-  </form>
-</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="city">City</label>
+          <input id="city" name="city" />
+        </div>
+        <div class="form-group">
+          <label for="state">State</label>
+          <input id="state" name="state" />
+        </div>
+        <div class="form-group">
+          <label for="zip">ZIP</label>
+          <input id="zip" name="zip" />
+        </div>
+      </div>
 
+      <div class="form-footer space-between">
+        <button type="button" class="btn-outline" id="backBtn">
+          Back
+        </button>
+        <button type="submit" class="btn-primary">
+          Next: Education
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script src="app.js"></script>
 <script>
-  const mustHave = ["street","city","state","zip"];
-  const nextBtn = document.getElementById("nextBtn");
-  const regData = JSON.parse(localStorage.getItem("regData")||"null");
-  if(!regData){ alert("Please complete Step 1 first."); location.href="register_personal.html"; }
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("addressForm");
 
-  function validate(){
-    let ok = true;
-    const v = id => document.getElementById(id).value.trim();
-    const set = (id, cond) => { document.getElementById(id).style.display = cond ? "none":"block"; if(!cond) ok=false; };
-    set("errStreet", !!v("street"));
-    set("errCity", !!v("city"));
-    set("errState", !!v("state"));
-    set("errZip", !!v("zip"));
-    nextBtn.disabled = !ok;
-    nextBtn.classList.toggle("enabled", ok);
-    return ok;
-  }
-  mustHave.forEach(id => document.getElementById(id).addEventListener("input", validate));
+    AppUtils.loadStepData("register_step_address", form);
 
-  nextBtn.addEventListener("click", () => {
-    if(!validate()) return;
-    const updated = {
-      ...regData,
-      street: document.getElementById("street").value.trim(),
-      city: document.getElementById("city").value.trim(),
-      state: document.getElementById("state").value.trim(),
-      zip: document.getElementById("zip").value.trim(),
-    };
-    localStorage.setItem("regData", JSON.stringify(updated));
-    location.href = "register_college.html";
+    document.getElementById("backBtn").addEventListener("click", () => {
+      AppUtils.saveStepData("register_step_address", form);
+      window.location.href = "register_personal_information.html";
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      AppUtils.saveStepData("register_step_address", form);
+      window.location.href = "register_college.html";
+    });
   });
 </script>
 </body>

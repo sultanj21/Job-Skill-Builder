@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Register - Personal Information</title>
+    <link rel="stylesheet" href="style.cc" />
+</head>
+<body>
+<header class="top-bar">
+    <div class="logo-area">
+        <span class="logo-dot"></span>
+        <h1>Pathway Registration</h1>
+    </div>
+    <nav>
+        <a href="/">Home</a>
+        <span class="step-indicator">Step 1 of 3</span>
+    </nav>
+</header>
+
+<main class="container">
+    <section class="card">
+        <h2>Personal Information</h2>
+        <form id="personal-form" class="form-grid">
+            <label>
+                First Name *
+                <input type="text" name="firstName" required />
+            </label>
+            <label>
+                Last Name *
+                <input type="text" name="lastName" required />
+            </label>
+            <label>
+                Birthday
+                <input type="date" name="birthday" />
+            </label>
+            <label>
+                Email *
+                <input type="email" name="email" required />
+            </label>
+            <label>
+                Occupation
+                <input type="text" name="occupation" />
+            </label>
+
+            <label data-password-wrapper>
+                Password *
+                <div class="password-row">
+                    <input
+                            type="password"
+                            name="password"
+                            data-pwd
+                            autocomplete="new-password"
+                            required
+                    />
+                    <button type="button" class="btn small ghost" data-toggle-password>
+                        Show
+                    </button>
+                </div>
+            </label>
+
+            <label>
+                Confirm Password *
+                <input
+                        type="password"
+                        name="confirmPassword"
+                        autocomplete="new-password"
+                        required
+                />
+            </label>
+
+            <div class="form-actions">
+                <a class="btn" href="/register">Back</a>
+                <button class="btn primary" type="submit">Next: Address</button>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

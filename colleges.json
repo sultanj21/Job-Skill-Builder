@@ -1,17 +1,8 @@
 [
-  "Harvard University",
-  "Stanford University",
-  "Massachusetts Institute of Technology",
-  "Princeton University",
-  "Yale University",
-  "Columbia University",
-  "University of California, Berkeley",
-  "University of Michigan",
-  "New York University",
-  "Georgia Institute of Technology",
-  "University of Florida",
-  "Boston University",
-  "University of Illinois Urbana-Champaign",
-  "Purdue University",
-  "University of Washington"
+  { "name": "Georgia State University" },
+  { "name": "Georgia Institute of Technology" },
+  { "name": "Kennesaw State University" },
+  { "name": "University of Georgia" },
+  { "name": "Atlanta Technical College" },
+  { "name": "Chattahoochee Technical College" }
 ]

@@ -1,32 +1,50 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Pathway — Job Recommendations</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8" />
+    <title>Jobs – Pathway</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-<header>
-    <h1>Pathway — Job Recommendations</h1>
+<body class="page">
+<header class="top-bar">
+    <div class="logo">Pathway</div>
     <nav>
-        <a href="index.html">Upload Resume</a> |
-        <a href="jobs.html">Job Recommendations</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="jobs.html">Jobs</a>
+        <button class="btn-outline" id="logoutBtn">Logout</button>
     </nav>
 </header>
 
-<main class="container">
+<main class="jobs-layout">
     <section class="card">
-        <h2>Recommended Jobs</h2>
-        <p>Click the button below to get job suggestions from our system.</p>
-        <button id="loadJobsBtn">Recommend Jobs</button>
-        <div id="jobs" class="jobs-grid"></div>
+        <h2>Job Board (placeholder)</h2>
+        <p class="muted">
+            Here you can later integrate real job feeds, saved jobs, and filters.
+        </p>
+        <ul class="job-list">
+            <li>
+                <h3>Junior Software Developer</h3>
+                <p class="muted small">
+                    Example Company · Atlanta, GA · Full-time
+                </p>
+            </li>
+            <li>
+                <h3>IT Support Specialist</h3>
+                <p class="muted small">
+                    Example Tech · Remote · Full-time
+                </p>
+            </li>
+        </ul>
     </section>
 </main>
 
-<footer>
-    <small>Frontend by Sultan Abuhijleh — Group 5 (Sprint 3)</small>
-</footer>
-
 <script src="app.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            AppUtils.handleLogout();
+        });
+    });
+</script>
 </body>
 </html>

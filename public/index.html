@@ -1,33 +1,33 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Pathway — Upload Resume</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8" />
+    <title>Pathway – Home</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-<header>
-    <h1>Pathway — Job Skills Builder</h1>
+<body class="page">
+<header class="top-bar">
+    <div class="logo">Pathway</div>
     <nav>
-        <a href="index.html">Upload Resume</a> |
-        <a href="jobs.html">Job Recommendations</a>
+        <a href="index.html">Home</a>
+        <a href="jobs.html">Jobs</a>
+        <a href="login.html" class="btn-outline">Login</a>
+        <a href="register.html" class="btn-primary">Get Started</a>
     </nav>
 </header>
 
-<main class="container">
-    <section class="card">
-        <h2>Upload Resume</h2>
-        <p>Select your resume file (PDF, DOCX, or TXT) to analyze skills.</p>
-        <input id="resumeFile" type="file" accept=".pdf,.docx,.txt">
-        <button id="analyzeBtn">Analyze Resume</button>
-        <div id="analysis" class="result hidden"></div>
+<main class="hero">
+    <section class="hero-content">
+        <h1>Build your job pathway in one place.</h1>
+        <p>
+            Create a profile, track your education, and manage job applications
+            with a clean, modern dashboard.
+        </p>
+        <div class="hero-actions">
+            <a href="register.html" class="btn-primary">Create Account</a>
+            <a href="login.html" class="btn-outline">I already have an account</a>
+        </div>
     </section>
 </main>
-
-<footer>
-    <small>Frontend by Sultan Abuhijleh — Group 5 (Sprint 3)</small>
-</footer>
-
-<script src="app.js"></script>
 </body>
 </html>

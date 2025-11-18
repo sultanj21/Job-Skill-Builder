@@ -1,670 +1,694 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Pathway Dashboard</title>
-    <link rel="stylesheet" href="style.css"/>
-    <style>
-        body{
-            display:flex;
-            min-height:100vh;
-            margin:0;
-            font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-        }
-        .sidebar{
-            width:230px;
-            background:#0f172a;
-            color:#f9fafb;
-            padding:18px 16px;
-            display:flex;
-            flex-direction:column;
-        }
-        .brand{
-            font-size:22px;
-            font-weight:800;
-            margin-bottom:20px;
-        }
-        .nav-item{
-            padding:10px 12px;
-            border-radius:8px;
-            cursor:pointer;
-            margin-bottom:4px;
-            font-size:14px;
-            display:flex;
-            align-items:center;
-            gap:8px;
-            color:#e5e7eb;
-        }
-        .nav-item.active,
-        .nav-item:hover{
-            background:#1d283a;
-            color:#fff;
-        }
-        .nav-footer{
-            margin-top:auto;
-            font-size:13px;
-            color:#9ca3af;
-        }
-        .nav-footer button{
-            width:100%;
-            margin-top:8px;
-            background:#ef4444;
-            border:none;
-            padding:8px 10px;
-            border-radius:6px;
-            color:#fff;
-            cursor:pointer;
-            font-size:13px;
-        }
-
-        .main{
-            flex:1;
-            background:#f3f4f6;
-            padding:20px;
-            overflow-y:auto;
-        }
-
-        .card{
-            background:#fff;
-            border-radius:16px;
-            padding:20px 22px;
-            box-shadow:0 10px 25px rgba(15,23,42,.08);
-            margin-bottom:18px;
-        }
-
-        .section-title{
-            font-size:20px;
-            font-weight:700;
-            margin:0 0 10px;
-        }
-        .muted{color:#6b7280;font-size:14px;}
-
-        .personal-grid{
-            display:grid;
-            grid-template-columns: minmax(0,2.1fr) minmax(0,1fr);
-            gap:20px;
-            align-items:flex-start;
-        }
-        .personal-grid img{
-            width:90px;height:90px;border-radius:999px;object-fit:cover;
-            border:3px solid #4f46e5;
-        }
-
-        .kv-row{margin:4px 0;font-size:14px;}
-        .kv-row b{color:#111827;margin-right:4px;}
-
-        /* Resume list */
-        #resumeList li{
-            font-size:14px;
-            margin:4px 0;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:12px;
-        }
-        #resumeList a{text-decoration:none;color:#2563eb;word-break:break-all;}
-        #resumeList span{font-size:11px;color:#6b7280;}
-
-        .tab{
-            display:none;
-        }
-        .tab.active{
-            display:block;
-        }
-
-        textarea{
-            width:100%;
-            min-height:140px;
-            resize:vertical;
-            padding:10px 12px;
-            border-radius:10px;
-            border:1px solid #d1d5db;
-            font-family:inherit;
-            font-size:14px;
-        }
-        table{
-            width:100%;
-            border-collapse:collapse;
-            font-size:13px;
-            margin-top:8px;
-        }
-        th,td{
-            padding:6px 8px;
-            border-bottom:1px solid #e5e7eb;
-            text-align:left;
-        }
-        th{background:#f9fafb;font-weight:600;font-size:12px;}
-        .pill{font-size:11px;padding:2px 7px;border-radius:999px;background:#e5e7ff;color:#4338ca;}
-        .tag{
-            display:inline-block;
-            background:#ecfeff;
-            color:#0e7490;
-            border-radius:999px;
-            padding:3px 8px;
-            font-size:11px;
-            margin:2px 2px 0 0;
-        }
-    </style>
+    <meta charset="UTF-8" />
+    <title>Dashboard – Pathway</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-<!-- SIDEBAR -->
-<div class="sidebar">
-    <div class="brand">Pathway</div>
-    <div class="nav-item active" data-target="tab-personal">👤 Personal Info</div>
-    <div class="nav-item" data-target="tab-resume">📄 Resume Upload</div>
-    <div class="nav-item" data-target="tab-formatter">✨ AI Resume Formatter</div>
-    <div class="nav-item" data-target="tab-jobs">🧭 Job Tracker</div>
-    <div class="nav-item" data-target="tab-interviews">🎤 Interviews</div>
-    <div class="nav-item" data-target="tab-settings">⚙️ Settings</div>
-
-    <div class="nav-footer">
-        Logged in as <span id="navEmail">...</span>
-        <button id="logoutBtn">Log out</button>
+<body class="page dashboard-page">
+<header class="top-bar top-bar--app">
+    <div class="top-left">
+        <div class="logo">Pathway</div>
+        <nav class="top-nav">
+            <a href="dashboard.html" class="top-link active">Dashboard</a>
+            <a href="jobs.html" class="top-link">Jobs</a>
+        </nav>
     </div>
-</div>
+    <div class="top-right">
+        <div class="top-user">
+            <div class="top-user-avatar">
+                <span id="topAvatarInitials">U</span>
+            </div>
+            <div class="top-user-meta">
+                <span id="topUserName" class="top-user-name">Your Name</span>
+                <span id="topUserTitle" class="top-user-title">Occupation</span>
+            </div>
+        </div>
+        <button class="btn-outline btn-small" id="logoutBtn">Logout</button>
+    </div>
+</header>
 
-<!-- MAIN AREA -->
-<div class="main">
-    <!-- PERSONAL INFO TAB -->
-    <div class="tab active" id="tab-personal">
-        <div class="card">
-            <h2 class="section-title">Your Personal Information</h2>
-            <p class="muted">We pulled this from your registration details.</p>
-            <div class="personal-grid">
-                <div id="personalInfoText">
-                    <!-- filled by JS -->
+<main class="dashboard-shell pro-layout">
+    <!-- LEFT: MINI DASHBOARD / SIDE NAV -->
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar">
+                <img id="sidebarProfileImg" alt="Profile" />
+                <span id="sidebarInitials"></span>
+            </div>
+            <div class="sidebar-profile-text">
+                <h2 id="sidebarName">Your Name</h2>
+                <p id="sidebarEmail" class="muted small">email@example.com</p>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <p class="sidebar-label">Workspace</p>
+            <nav class="sidebar-nav">
+                <button class="sidebar-tab active" data-tab="overview">
+                    Overview
+                </button>
+                <button class="sidebar-tab" data-tab="personal">
+                    Personal Info
+                </button>
+                <button class="sidebar-tab" data-tab="resume">
+                    Resume
+                </button>
+                <button class="sidebar-tab" data-tab="photo">
+                    Profile Photo
+                </button>
+                <button class="sidebar-tab" data-tab="account">
+                    Account
+                </button>
+            </nav>
+        </div>
+
+        <div class="sidebar-section">
+            <p class="sidebar-label">Quick actions</p>
+            <div class="quick-actions">
+                <button class="qa-btn" data-tab-jump="resume">
+                    Upload a resume
+                </button>
+                <button class="qa-btn" data-tab-jump="photo">
+                    Update profile photo
+                </button>
+                <button class="qa-btn" data-tab-jump="personal">
+                    Review personal info
+                </button>
+                <a href="jobs.html" class="qa-btn qa-btn-link">
+                    Explore jobs
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- CENTER: MAIN PANELS -->
+    <section class="dashboard-main">
+        <!-- OVERVIEW TAB -->
+        <div class="tab-panel active" id="tab-overview">
+            <div class="grid grid-2 gap">
+                <div class="card">
+                    <div class="card-header-row">
+                        <div>
+                            <h3>Welcome back</h3>
+                            <p class="muted small">
+                                This is your career hub. Keep your profile strong,
+                                and use your tools to stay job-ready.
+                            </p>
+                        </div>
+                        <div class="badge badge-soft">
+                            Profile Strength
+                        </div>
+                    </div>
+
+                    <div class="profile-completion">
+                        <div class="completion-header">
+                            <span id="completionLabel">Profile completeness</span>
+                            <span id="completionPercent">0%</span>
+                        </div>
+                        <div class="completion-bar">
+                            <div
+                                    class="completion-fill"
+                                    id="completionFill"
+                            ></div>
+                        </div>
+                        <p class="muted x-small" id="completionHint">
+                            Fill in your education, address, and upload a resume
+                            to reach 100%.
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <img id="profilePic" src="https://via.placeholder.com/90" alt="Profile picture">
-                    <form id="avatarForm" style="margin-top:8px;">
-                        <input type="file" id="avatarInput" name="avatar" accept="image/*" />
-                        <button type="submit" style="margin-top:6px;">Update Picture</button>
-                        <div id="avatarMsg" class="muted"></div>
-                    </form>
+
+                <div class="card stats-card">
+                    <h3>Snapshot</h3>
+                    <div class="stats-grid">
+                        <div class="stat-pill">
+                            <span class="stat-label">Applications</span>
+                            <span class="stat-value">0</span>
+                            <span class="stat-sub muted x-small">
+                                Tracking coming soon
+                            </span>
+                        </div>
+                        <div class="stat-pill">
+                            <span class="stat-label">Saved jobs</span>
+                            <span class="stat-value">0</span>
+                            <span class="stat-sub muted x-small">
+                                Use the jobs page to save postings
+                            </span>
+                        </div>
+                        <div class="stat-pill">
+                            <span class="stat-label">Resume</span>
+                            <span class="stat-value" id="statResume">
+                                Not uploaded
+                            </span>
+                            <span class="stat-sub muted x-small">
+                                Upload in the Resume tab
+                            </span>
+                        </div>
+                        <div class="stat-pill">
+                            <span class="stat-label">Member since</span>
+                            <span class="stat-value" id="statMemberSince">
+                                —
+                            </span>
+                            <span class="stat-sub muted x-small">
+                                Your Pathway account age
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-2 gap">
+                <div class="card">
+                    <h3>Profile overview</h3>
+                    <div class="detail-grid">
+                        <div>
+                            <strong>Full Name:</strong>
+                            <span id="ovFullname"></span>
+                        </div>
+                        <div>
+                            <strong>Occupation:</strong>
+                            <span id="ovOccupation"></span>
+                        </div>
+                        <div>
+                            <strong>College:</strong>
+                            <span id="ovCollege"></span>
+                        </div>
+                        <div>
+                            <strong>Graduation Date:</strong>
+                            <span id="ovGradDate"></span>
+                        </div>
+                        <div>
+                            <strong>Location:</strong>
+                            <span id="ovLocation"></span>
+                        </div>
+                        <div>
+                            <strong>Birthday:</strong>
+                            <span id="ovBirthday"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Recent activity</h3>
+                    <ul class="activity-list">
+                        <li>
+                            <span class="dot dot-green"></span>
+                            <div>
+                                <p class="activity-title">
+                                    Logged in to dashboard
+                                </p>
+                                <p class="activity-meta muted x-small">
+                                    Just now · Session active
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="dot dot-blue"></span>
+                            <div>
+                                <p class="activity-title">
+                                    Create your first resume upload
+                                </p>
+                                <p class="activity-meta muted x-small">
+                                    Use the Resume tab to keep files handy
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="dot dot-gray"></span>
+                            <div>
+                                <p class="activity-title">
+                                    Complete profile details
+                                </p>
+                                <p class="activity-meta muted x-small">
+                                    Fill in education and address to strengthen
+                                    your profile
+                                </p>
+                            </div>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
 
-        <div class="card">
-            <h3 class="section-title" style="font-size:18px;">College & Graduation</h3>
-            <div id="collegeInfoText"></div>
-        </div>
-    </div>
-
-    <!-- RESUME TAB -->
-    <div class="tab" id="tab-resume">
-        <div class="card">
-            <h2 class="section-title">Resume Upload</h2>
-            <p class="muted">Upload PDFs or Word documents. They’ll be stored in your Supabase storage.</p>
-
-            <form id="resumeForm" enctype="multipart/form-data" style="margin-top:6px;">
-                <input type="file" id="resumeInput" name="resume" accept=".pdf,.doc,.docx,.txt"/>
-                <button type="submit" style="margin-top:8px;">Upload Resume</button>
-                <div id="resumeMsg" class="muted"></div>
-            </form>
-        </div>
-
-        <div class="card">
-            <h3 class="section-title" style="font-size:18px;">Your Resumes</h3>
-            <ul id="resumeList"></ul>
-        </div>
-    </div>
-
-    <!-- FORMATTER TAB -->
-    <div class="tab" id="tab-formatter">
-        <div class="card">
-            <h2 class="section-title">AI Resume Formatter (Simple)</h2>
-            <p class="muted">Paste raw bullets or text and we’ll normalize them into a clean bullet list.</p>
-
-            <div class="form-group">
-                <label for="rawResume">Paste resume text</label>
-                <textarea id="rawResume" placeholder="- did something
-- did another thing"></textarea>
+        <!-- PERSONAL INFO TAB -->
+        <div class="tab-panel" id="tab-personal">
+            <div class="card">
+                <h3>Personal information</h3>
+                <p class="muted small">
+                    This information helps recruiters understand your background.
+                </p>
+                <div class="detail-grid">
+                    <div>
+                        <strong>First Name:</strong>
+                        <span id="pFirst"></span>
+                    </div>
+                    <div>
+                        <strong>Last Name:</strong>
+                        <span id="pLast"></span>
+                    </div>
+                    <div>
+                        <strong>Full Name:</strong>
+                        <span id="pFull"></span>
+                    </div>
+                    <div>
+                        <strong>Email:</strong>
+                        <span id="pEmail"></span>
+                    </div>
+                    <div>
+                        <strong>Birthday:</strong>
+                        <span id="pBirthday"></span>
+                    </div>
+                    <div>
+                        <strong>Occupation:</strong>
+                        <span id="pOccupation"></span>
+                    </div>
+                </div>
             </div>
-            <button id="formatBtn">Format</button>
-            <p id="formatMsg" class="muted"></p>
 
-            <div style="margin-top:16px;">
-                <label><b>Formatted output</b></label>
-                <pre id="formattedResume" style="white-space:pre-wrap;background:#f9fafb;border-radius:10px;padding:10px 12px;font-size:13px;"></pre>
+            <div class="grid grid-2 gap">
+                <div class="card">
+                    <h3>Address</h3>
+                    <div class="detail-grid">
+                        <div>
+                            <strong>Street:</strong>
+                            <span id="pStreet"></span>
+                        </div>
+                        <div>
+                            <strong>City:</strong>
+                            <span id="pCity"></span>
+                        </div>
+                        <div>
+                            <strong>State:</strong>
+                            <span id="pState"></span>
+                        </div>
+                        <div>
+                            <strong>ZIP:</strong>
+                            <span id="pZip"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Education</h3>
+                    <div class="detail-grid">
+                        <div>
+                            <strong>College:</strong>
+                            <span id="pCollege"></span>
+                        </div>
+                        <div>
+                            <strong>Certificate:</strong>
+                            <span id="pCertificate"></span>
+                        </div>
+                        <div>
+                            <strong>Graduation Date:</strong>
+                            <span id="pGradDate"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- JOB TRACKER TAB -->
-    <div class="tab" id="tab-jobs">
+        <!-- RESUME TAB -->
+        <div class="tab-panel" id="tab-resume">
+            <div class="card">
+                <h3>Resume upload</h3>
+                <p class="muted small">
+                    Keep your latest resume here so it’s always ready.
+                </p>
+                <form id="resumeForm" enctype="multipart/form-data" class="inline-form">
+                    <div class="form-group">
+                        <label for="resumeFile">Choose a file</label>
+                        <input
+                                id="resumeFile"
+                                name="resume"
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                        />
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        Upload resume
+                    </button>
+                </form>
+                <div
+                        id="resumeStatus"
+                        class="muted small"
+                        style="margin-top:0.75rem;"
+                ></div>
+            </div>
+
+            <div class="card">
+                <h3>Resume tips</h3>
+                <ul class="tips-list">
+                    <li>Keep it to 1–2 pages with clear headings.</li>
+                    <li>Highlight measurable impact (numbers, results).</li>
+                    <li>Tailor your summary to the role you want.</li>
+                    <li>Make sure your contact information is correct.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- PHOTO TAB -->
+        <div class="tab-panel" id="tab-photo">
+            <div class="card">
+                <h3>Profile photo</h3>
+                <div class="profile-photo-row">
+                    <div class="profile-photo-preview">
+                        <img id="profilePhotoPreview" alt="Profile" />
+                    </div>
+                    <div class="profile-photo-controls">
+                        <p class="muted small">
+                            A clean, bright photo helps personalize your profile.
+                        </p>
+                        <form
+                                id="profilePicForm"
+                                enctype="multipart/form-data"
+                                class="inline-form"
+                        >
+                            <div class="form-group">
+                                <label for="profilePicInput">Choose image</label>
+                                <input
+                                        id="profilePicInput"
+                                        name="profilePic"
+                                        type="file"
+                                        accept="image/*"
+                                />
+                            </div>
+                            <button type="submit" class="btn-primary">
+                                Upload photo
+                            </button>
+                        </form>
+                        <div
+                                id="profilePicStatus"
+                                class="muted small"
+                                style="margin-top:0.75rem;"
+                        ></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACCOUNT TAB -->
+        <div class="tab-panel" id="tab-account">
+            <div class="card">
+                <h3>Account</h3>
+                <div class="detail-grid">
+                    <div>
+                        <strong>Email:</strong>
+                        <span id="accEmail"></span>
+                    </div>
+                    <div>
+                        <strong>Full Name:</strong>
+                        <span id="accFullname"></span>
+                    </div>
+                    <div>
+                        <strong>Member Since:</strong>
+                        <span id="accCreatedAt"></span>
+                    </div>
+                </div>
+
+                <div style="margin-top:1rem;">
+                    <button class="btn-outline" id="logoutBtn2">
+                        Log out of this device
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RIGHT: EXTRA UTILITIES -->
+    <aside class="dashboard-right">
         <div class="card">
-            <h2 class="section-title">Job Applications</h2>
-            <p class="muted">Track the positions you’ve applied to.</p>
-
-            <form id="jobForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
-                <div class="form-group">
-                    <label for="jobTitle">Title</label>
-                    <input id="jobTitle" type="text" placeholder="Software Engineer"/>
-                </div>
-                <div class="form-group">
-                    <label for="jobCompany">Company</label>
-                    <input id="jobCompany" type="text" placeholder="Company name"/>
-                </div>
-                <div class="form-group">
-                    <label for="jobStatus">Status</label>
-                    <select id="jobStatus">
-                        <option value="Applied">Applied</option>
-                        <option value="Phone Screen">Phone Screen</option>
-                        <option value="Onsite">Onsite</option>
-                        <option value="Offer">Offer</option>
-                        <option value="Rejected">Rejected</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="jobDate">Date</label>
-                    <input id="jobDate" type="date"/>
-                </div>
-                <div style="align-self:end;">
-                    <button type="submit">Add Job</button>
-                </div>
-            </form>
-            <p id="jobMsg" class="muted"></p>
+            <h3>Suggested roles</h3>
+            <ul class="job-suggest-list">
+                <li>
+                    <p class="job-title-sm">Junior Software Developer</p>
+                    <p class="muted x-small">
+                        SampleTech · Atlanta · Full-time
+                    </p>
+                </li>
+                <li>
+                    <p class="job-title-sm">IT Support Specialist</p>
+                    <p class="muted x-small">
+                        SupportCo · Hybrid · Entry-level
+                    </p>
+                </li>
+                <li>
+                    <p class="job-title-sm">Cybersecurity Intern</p>
+                    <p class="muted x-small">
+                        SecureNet · Remote · Internship
+                    </p>
+                </li>
+            </ul>
+            <a href="jobs.html" class="link-inline small">
+                View more jobs →
+            </a>
         </div>
 
         <div class="card">
-            <h3 class="section-title" style="font-size:18px;">Job List</h3>
-            <table id="jobsTable">
-                <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Company</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <h3>Career tips</h3>
+            <ul class="tips-list">
+                <li>Keep your LinkedIn and resume aligned.</li>
+                <li>Document projects and class work as experience.</li>
+                <li>Reach out to recruiters with a short, focused message.</li>
+                <li>Practice short “about me” introductions.</li>
+            </ul>
         </div>
-    </div>
+    </aside>
+</main>
 
-    <!-- INTERVIEWS TAB -->
-    <div class="tab" id="tab-interviews">
-        <div class="card">
-            <h2 class="section-title">Interviews</h2>
-            <p class="muted">Keep track of upcoming interviews and notes.</p>
-
-            <form id="interviewForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
-                <div class="form-group">
-                    <label for="intCompany">Company</label>
-                    <input id="intCompany" type="text" placeholder="Company"/>
-                </div>
-                <div class="form-group">
-                    <label for="intRole">Role</label>
-                    <input id="intRole" type="text" placeholder="Job role"/>
-                </div>
-                <div class="form-group">
-                    <label for="intDate">Date</label>
-                    <input id="intDate" type="date"/>
-                </div>
-                <div class="form-group">
-                    <label for="intTime">Time</label>
-                    <input id="intTime" type="time"/>
-                </div>
-                <div class="form-group" style="grid-column:1/-1;">
-                    <label for="intNotes">Notes</label>
-                    <input id="intNotes" type="text" placeholder="Zoom link, who you’re talking to, etc."/>
-                </div>
-                <div style="align-self:end;">
-                    <button type="submit">Add Interview</button>
-                </div>
-            </form>
-            <p id="intMsg" class="muted"></p>
-        </div>
-
-        <div class="card">
-            <h3 class="section-title" style="font-size:18px;">Upcoming Interviews</h3>
-            <table id="interviewsTable">
-                <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Company</th>
-                    <th>Role</th>
-                    <th>Notes</th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- SETTINGS TAB -->
-    <div class="tab" id="tab-settings">
-        <div class="card">
-            <h2 class="section-title">Settings</h2>
-            <p class="muted">Basic account info is read-only for now. Use registration for new accounts.</p>
-            <div id="settingsInfo"></div>
-        </div>
-    </div>
-</div>
-
+<script src="app.js"></script>
 <script>
-    // ---------------- NAV TABS ----------------
-    const navItems = document.querySelectorAll(".nav-item");
-    const tabs = document.querySelectorAll(".tab");
-
-    navItems.forEach(item => {
-        item.addEventListener("click", () => {
-            navItems.forEach(i => i.classList.remove("active"));
-            item.classList.add("active");
-            const target = item.getAttribute("data-target");
-            tabs.forEach(t => t.classList.toggle("active", t.id === target));
+    document.addEventListener("DOMContentLoaded", async () => {
+        // Logout buttons
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            AppUtils.handleLogout();
         });
-    });
+        document.getElementById("logoutBtn2").addEventListener("click", () => {
+            AppUtils.handleLogout();
+        });
 
-    // ---------------- LOAD SESSION / USER ----------------
-    async function loadSession() {
+        // Tab switching
+        const tabButtons = document.querySelectorAll(".sidebar-tab");
+        const tabPanels = document.querySelectorAll(".tab-panel");
+
+        function activateTab(tab) {
+            tabButtons.forEach((b) => {
+                b.classList.toggle("active", b.dataset.tab === tab);
+            });
+            tabPanels.forEach((panel) => {
+                panel.classList.toggle("active", panel.id === "tab-" + tab);
+            });
+        }
+
+        tabButtons.forEach((btn) => {
+            btn.addEventListener("click", () => {
+                activateTab(btn.dataset.tab);
+            });
+        });
+
+        // Quick actions jumping to tabs
+        document.querySelectorAll("[data-tab-jump]").forEach((el) => {
+            el.addEventListener("click", () => {
+                const tab = el.getAttribute("data-tab-jump");
+                activateTab(tab);
+            });
+        });
+
+        // Load user data
+        let user = null;
         try {
-            const res = await fetch("/check-session");
+            const res = await fetch("/api/me");
             const data = await res.json();
-
-            if (!data.loggedIn) {
+            if (!data.success) {
+                AppUtils.showBanner("Please log in again.", "error");
                 window.location.href = "/login.html";
                 return;
             }
-
-            const u = data.user || {};
-            const fullName = u.fullName || `${u.firstName || ""} ${u.lastName || ""}`.trim() || "Not provided";
-
-            document.getElementById("navEmail").textContent = u.email || "unknown";
-
-            // Personal info block
-            const personalHtml = `
-        <div class="kv-row"><b>Name:</b> ${fullName}</div>
-        <div class="kv-row"><b>Email:</b> ${u.email || "Not provided"}</div>
-        <div class="kv-row"><b>Birthday:</b> ${u.birthday || "Not provided"}</div>
-        <div class="kv-row"><b>Occupation:</b> ${u.occupation || "Not provided"}</div>
-
-        <h4 style="margin-top:14px;margin-bottom:4px;">Address</h4>
-        <div class="kv-row"><b>Street:</b> ${u.street || ""}</div>
-        <div class="kv-row"><b>City:</b> ${u.city || ""}</div>
-        <div class="kv-row"><b>State:</b> ${u.state || ""}</div>
-        <div class="kv-row"><b>ZIP:</b> ${u.zip || ""}</div>
-      `;
-            document.getElementById("personalInfoText").innerHTML = personalHtml;
-
-            const collegeHtml = `
-        <div class="kv-row"><b>College:</b> ${u.college || "Not provided"}</div>
-        <div class="kv-row"><b>Degree:</b> ${u.certificate || "Not provided"}</div>
-        <div class="kv-row"><b>Graduation:</b> ${u.gradDate || "Not provided"}</div>
-      `;
-            document.getElementById("collegeInfoText").innerHTML = collegeHtml;
-
-            if (u.profilePicPath) {
-                document.getElementById("profilePic").src = u.profilePicPath;
-            }
-
-            // Settings view
-            document.getElementById("settingsInfo").innerHTML = `
-        <div class="kv-row"><b>User ID:</b> ${u.id || "(hidden)"}</div>
-        <div class="kv-row"><b>Email:</b> ${u.email || ""}</div>
-        <div class="kv-row"><b>Name:</b> ${fullName}</div>
-      `;
-
-            // Load the other data
-            loadResumes();
-            loadJobs();
-            loadInterviews();
+            user = data.user;
         } catch (err) {
-            console.error("check-session failed:", err);
-            window.location.href = "/login.html";
-        }
-    }
-
-    // ---------------- LOGOUT ----------------
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-        try {
-            await fetch("/logout");
-        } catch (e) { }
-        window.location.href = "/login.html";
-    });
-
-    // ---------------- PROFILE PIC UPLOAD ----------------
-    document.getElementById("avatarForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const msg = document.getElementById("avatarMsg");
-        const fileInput = document.getElementById("avatarInput");
-        if (!fileInput.files.length) {
-            msg.textContent = "Please pick a file first.";
+            console.error("Dashboard load error:", err);
+            AppUtils.showBanner("Server error. Try again.", "error");
             return;
         }
-        msg.textContent = "Uploading...";
-        try {
-            const fd = new FormData();
-            fd.append("avatar", fileInput.files[0]);
-            const res = await fetch("/profile-picture", {
-                method: "POST",
-                body: fd
-            });
-            const data = await res.json();
-            if (!data.success) {
-                msg.textContent = data.message || "Upload failed";
+
+        const u = user;
+
+        // Top bar
+        document.getElementById("topUserName").textContent = u.fullname || "";
+        document.getElementById("topUserTitle").textContent = u.occupation || "";
+        const initialsTop =
+            (u.firstname?.[0] || "").toUpperCase() +
+            (u.lastname?.[0] || "").toUpperCase();
+        document.getElementById("topAvatarInitials").textContent =
+            initialsTop || "U";
+
+        // Sidebar
+        document.getElementById("sidebarName").textContent = u.fullname || "";
+        document.getElementById("sidebarEmail").textContent = u.email || "";
+        const initials =
+            (u.firstname?.[0] || "").toUpperCase() +
+            (u.lastname?.[0] || "").toUpperCase();
+        document.getElementById("sidebarInitials").textContent =
+            initials || "U";
+
+        const defaultPic = "https://via.placeholder.com/96?text=U";
+        const profilePath =
+            u.profilepicpath && u.profilepicpath.trim()
+                ? u.profilepicpath
+                : defaultPic;
+        document.getElementById("sidebarProfileImg").src = profilePath;
+        document.getElementById("profilePhotoPreview").src = profilePath;
+
+        // Overview summary
+        document.getElementById("ovFullname").textContent = u.fullname || "";
+        document.getElementById("ovOccupation").textContent = u.occupation || "";
+        document.getElementById("ovCollege").textContent = u.college || "";
+        document.getElementById("ovGradDate").textContent = u.graddate || "";
+        document.getElementById("ovLocation").textContent = [u.city, u.state]
+            .filter(Boolean)
+            .join(", ");
+        document.getElementById("ovBirthday").textContent = u.birthday || "";
+
+        // Snapshot / stats
+        const created = u.created_at
+            ? new Date(u.created_at).toLocaleDateString()
+            : "—";
+        document.getElementById("statMemberSince").textContent = created;
+
+        // Personal info tab
+        document.getElementById("pFirst").textContent = u.firstname || "";
+        document.getElementById("pLast").textContent = u.lastname || "";
+        document.getElementById("pFull").textContent = u.fullname || "";
+        document.getElementById("pEmail").textContent = u.email || "";
+        document.getElementById("pBirthday").textContent = u.birthday || "";
+        document.getElementById("pOccupation").textContent =
+            u.occupation || "";
+        document.getElementById("pStreet").textContent = u.street || "";
+        document.getElementById("pCity").textContent = u.city || "";
+        document.getElementById("pState").textContent = u.state || "";
+        document.getElementById("pZip").textContent = u.zip || "";
+        document.getElementById("pCollege").textContent = u.college || "";
+        document.getElementById("pCertificate").textContent =
+            u.certificate || "";
+        document.getElementById("pGradDate").textContent = u.graddate || "";
+
+        // Account tab
+        document.getElementById("accEmail").textContent = u.email || "";
+        document.getElementById("accFullname").textContent = u.fullname || "";
+        document.getElementById("accCreatedAt").textContent = created;
+
+        // Profile completion calculation
+        const fields = [
+            u.firstname,
+            u.lastname,
+            u.birthday,
+            u.email,
+            u.occupation,
+            u.city,
+            u.state,
+            u.college,
+            u.certificate,
+            u.graddate,
+        ];
+        const filled = fields.filter((v) => v && String(v).trim() !== "").length;
+        const total = fields.length + 1; // +1 reserved for resume upload later
+        let percent = Math.round((filled / total) * 100);
+        if (percent > 100) percent = 100;
+        if (percent < 0) percent = 0;
+
+        const completionFill = document.getElementById("completionFill");
+        const completionPercent = document.getElementById("completionPercent");
+        const completionHint = document.getElementById("completionHint");
+        completionFill.style.width = percent + "%";
+        completionPercent.textContent = percent + "%";
+
+        if (percent < 40) {
+            completionHint.textContent =
+                "Good start. Add more education and location details to strengthen your profile.";
+        } else if (percent < 80) {
+            completionHint.textContent =
+                "You’re almost there. Upload a resume and fill any missing fields to reach 100%.";
+        } else {
+            completionHint.textContent =
+                "Nice! Your profile looks strong. Keep your resume updated for new opportunities.";
+        }
+
+        // Resume / profile-pic form handlers
+        const resumeForm = document.getElementById("resumeForm");
+        const resumeStatus = document.getElementById("resumeStatus");
+        const statResume = document.getElementById("statResume");
+
+        resumeForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            resumeStatus.textContent = "";
+            const fileInput = document.getElementById("resumeFile");
+            if (!fileInput.files.length) {
+                resumeStatus.textContent = "Please select a file.";
                 return;
             }
-            document.getElementById("profilePic").src = data.path;
-            msg.textContent = "✅ Updated!";
-        } catch (err) {
-            console.error(err);
-            msg.textContent = "Error uploading picture.";
-        }
+            const formData = new FormData();
+            formData.append("resume", fileInput.files[0]);
+
+            try {
+                const res = await fetch("/upload-resume", {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await res.json();
+                if (data.success) {
+                    resumeStatus.textContent =
+                        "Uploaded: " + (data.filename || "file");
+                    statResume.textContent = "Uploaded";
+                } else {
+                    resumeStatus.textContent =
+                        data.message || "Upload failed.";
+                }
+            } catch (err) {
+                console.error("Resume upload error:", err);
+                resumeStatus.textContent = "Server error.";
+            }
+        });
+
+        const profilePicForm = document.getElementById("profilePicForm");
+        const profilePicStatus = document.getElementById("profilePicStatus");
+
+        profilePicForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            profilePicStatus.textContent = "";
+            const fileInput = document.getElementById("profilePicInput");
+            if (!fileInput.files.length) {
+                profilePicStatus.textContent = "Please select an image.";
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("profilePic", fileInput.files[0]);
+
+            try {
+                const res = await fetch("/upload-profile-pic", {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await res.json();
+                if (data.success) {
+                    profilePicStatus.textContent =
+                        data.message || "Updated.";
+                    const newPath = data.path;
+                    document.getElementById("sidebarProfileImg").src =
+                        newPath;
+                    document.getElementById("profilePhotoPreview").src =
+                        newPath;
+                } else {
+                    profilePicStatus.textContent =
+                        data.message || "Upload failed.";
+                }
+            } catch (err) {
+                console.error("Profile pic upload error:", err);
+                profilePicStatus.textContent = "Server error.";
+            }
+        });
     });
-
-    // ---------------- RESUME UPLOAD + LIST ----------------
-    async function loadResumes() {
-        const list = document.getElementById("resumeList");
-        list.innerHTML = "<li class='muted'>Loading...</li>";
-        try {
-            const res = await fetch("/resumes");
-            const data = await res.json();
-            if (!data.success) {
-                list.innerHTML = "<li class='muted'>Could not load resumes.</li>";
-                return;
-            }
-            if (!data.files || data.files.length === 0) {
-                list.innerHTML = "<li class='muted'>No resumes uploaded yet.</li>";
-                return;
-            }
-            list.innerHTML = "";
-            data.files.forEach(f => {
-                const li = document.createElement("li");
-                const date = f.createdAt ? new Date(f.createdAt).toLocaleString() : "";
-                li.innerHTML = `<a href="${f.url}" target="_blank">${f.name}</a><span>${date}</span>`;
-                list.appendChild(li);
-            });
-        } catch (err) {
-            console.error("loadResumes error:", err);
-            list.innerHTML = "<li class='muted'>Error loading resumes.</li>";
-        }
-    }
-
-    document.getElementById("resumeForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const msg = document.getElementById("resumeMsg");
-        const fileInput = document.getElementById("resumeInput");
-        if (!fileInput.files.length) {
-            msg.textContent = "Choose a file first.";
-            return;
-        }
-        msg.textContent = "Uploading...";
-        try {
-            const fd = new FormData();
-            fd.append("resume", fileInput.files[0]);
-            const res = await fetch("/uploadResume", { method:"POST", body: fd });
-            const data = await res.json();
-            if (!data.success) {
-                msg.textContent = data.message || "Upload failed.";
-                return;
-            }
-            msg.textContent = "✅ Uploaded!";
-            fileInput.value = "";
-            loadResumes();
-        } catch (err) {
-            console.error("upload resume error:", err);
-            msg.textContent = "Error uploading resume.";
-        }
-    });
-
-    // ---------------- FORMATTER ----------------
-    document.getElementById("formatBtn").addEventListener("click", async () => {
-        const raw = document.getElementById("rawResume").value;
-        const msg = document.getElementById("formatMsg");
-        msg.textContent = "Formatting...";
-        try {
-            const res = await fetch("/api/format-resume", {
-                method: "POST",
-                headers: { "Content-Type":"application/json" },
-                body: JSON.stringify({ text: raw })
-            });
-            const data = await res.json();
-            if (!data.success) {
-                msg.textContent = data.message || "Could not format text.";
-                return;
-            }
-            msg.textContent = "✅ Done!";
-            document.getElementById("formattedResume").textContent = data.formattedText;
-        } catch (err) {
-            console.error(err);
-            msg.textContent = "Error calling formatter.";
-        }
-    });
-
-    // ---------------- JOBS ----------------
-    async function loadJobs() {
-        const tbody = document.querySelector("#jobsTable tbody");
-        tbody.innerHTML = "<tr><td colspan='4' class='muted'>Loading...</td></tr>";
-        try {
-            const res = await fetch("/api/jobs");
-            const data = await res.json();
-            if (!data.success) {
-                tbody.innerHTML = "<tr><td colspan='4' class='muted'>Could not load jobs.</td></tr>";
-                return;
-            }
-            const jobs = data.jobs || [];
-            if (!jobs.length) {
-                tbody.innerHTML = "<tr><td colspan='4' class='muted'>No jobs yet.</td></tr>";
-                return;
-            }
-            tbody.innerHTML = "";
-            jobs.forEach(j => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-          <td>${j.title || ""}</td>
-          <td>${j.company || ""}</td>
-          <td><span class="pill">${j.status || ""}</span></td>
-          <td>${j.date || ""}</td>
-        `;
-                tbody.appendChild(tr);
-            });
-        } catch (err) {
-            console.error("loadJobs error:", err);
-            tbody.innerHTML = "<tr><td colspan='4' class='muted'>Error loading jobs.</td></tr>";
-        }
-    }
-
-    document.getElementById("jobForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const job = {
-            title: document.getElementById("jobTitle").value.trim(),
-            company: document.getElementById("jobCompany").value.trim(),
-            status: document.getElementById("jobStatus").value,
-            date: document.getElementById("jobDate").value || null
-        };
-        const msg = document.getElementById("jobMsg");
-        msg.textContent = "Saving...";
-        try {
-            const res = await fetch("/api/jobs", {
-                method:"POST",
-                headers:{ "Content-Type":"application/json" },
-                body: JSON.stringify(job)
-            });
-            const data = await res.json();
-            if (!data.success) {
-                msg.textContent = data.message || "Could not add job.";
-                return;
-            }
-            msg.textContent = "✅ Added!";
-            e.target.reset();
-            loadJobs();
-        } catch (err) {
-            console.error("add job error:", err);
-            msg.textContent = "Error adding job.";
-        }
-    });
-
-    // ---------------- INTERVIEWS ----------------
-    async function loadInterviews() {
-        const tbody = document.querySelector("#interviewsTable tbody");
-        tbody.innerHTML = "<tr><td colspan='5' class='muted'>Loading...</td></tr>";
-        try {
-            const res = await fetch("/api/interviews");
-            const data = await res.json();
-            if (!data.success) {
-                tbody.innerHTML = "<tr><td colspan='5' class='muted'>Could not load interviews.</td></tr>";
-                return;
-            }
-            const list = data.interviews || [];
-            if (!list.length) {
-                tbody.innerHTML = "<tr><td colspan='5' class='muted'>No interviews yet.</td></tr>";
-                return;
-            }
-            tbody.innerHTML = "";
-            list.forEach(i => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-          <td>${i.date || ""}</td>
-          <td>${i.time || ""}</td>
-          <td>${i.company || ""}</td>
-          <td>${i.role || ""}</td>
-          <td>${i.notes || ""}</td>
-        `;
-                tbody.appendChild(tr);
-            });
-        } catch (err) {
-            console.error("loadInterviews error:", err);
-            tbody.innerHTML = "<tr><td colspan='5' class='muted'>Error loading interviews.</td></tr>";
-        }
-    }
-
-    document.getElementById("interviewForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const payload = {
-            company: document.getElementById("intCompany").value.trim(),
-            role: document.getElementById("intRole").value.trim(),
-            date: document.getElementById("intDate").value || null,
-            time: document.getElementById("intTime").value || null,
-            notes: document.getElementById("intNotes").value.trim() || null
-        };
-        const msg = document.getElementById("intMsg");
-        msg.textContent = "Saving...";
-        try {
-            const res = await fetch("/api/interviews", {
-                method:"POST",
-                headers:{ "Content-Type":"application/json" },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            if (!data.success) {
-                msg.textContent = data.message || "Could not add interview.";
-                return;
-            }
-            msg.textContent = "✅ Added!";
-            e.target.reset();
-            loadInterviews();
-        } catch (err) {
-            console.error("add interview error:", err);
-            msg.textContent = "Error adding interview.";
-        }
-    });
-
-    // ---------------- INIT ----------------
-    loadSession();
 </script>
 </body>
 </html>
