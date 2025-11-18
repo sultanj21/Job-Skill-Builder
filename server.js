@@ -7,7 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const OpenAI = require("openai");
-const { PDFParse } = require("pdf-parse");
+const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const elevatorRoutes = require("./elevatorRoutes");
@@ -69,13 +69,8 @@ async function extractTextFromFile(file) {
     const buffer = fs.readFileSync(filePath);
 
     if (ext === ".pdf" || file.mimetype === "application/pdf") {
-        const parser = new PDFParse({ data: buffer });
-        try {
-            const parsed = await parser.getText();
-            return parsed?.text || "";
-        } finally {
-            await parser.destroy().catch(() => {});
-        }
+        const parsed = await pdfParse(buffer);
+        return parsed?.text || "";
     }
 
     if (ext === ".docx" || file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
