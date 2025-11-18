@@ -213,34 +213,72 @@
     fetch('/check-session')
         .then(res => res.json())
         .then(data => {
-            if (!data.loggedIn) {
+            if (!data.loggedIn || !data.user) {
                 window.location.href = "/login.html";
-            } else {
-                const u = data.user || {};
-                document.getElementById("personalData").innerHTML = `
-                    <p><b>Name:</b> ${u.fullName || "N/A"}</p>
-                    <p><b>Email:</b> ${u.email || "N/A"}</p>
-                    <p><b>Occupation:</b> ${u.occupation || "N/A"}</p>
-                    <p><b>Birthday:</b> ${u.birthday || "N/A"}</p>
-                    <p><b>Address:</b> ${
-                    [u.street, u.city, u.state, u.zip].filter(Boolean).join(", ") || "N/A"
-                }</p>
-                    <p><b>College:</b> ${u.college || "N/A"}</p>
-                    <p><b>Degree:</b> ${u.certificate || "N/A"}</p>
-                    <p><b>Graduation:</b> ${u.gradDate || "N/A"}</p>
-                `;
-
-                if (u.profilePicPath) {
-                    document.getElementById("profilePic").src = u.profilePicPath;
-                } else {
-                    document.getElementById("profilePic").src = "https://via.placeholder.com/80";
-                }
-
-                loadJobs();
-                loadInterviews();
-                loadSuggestions();
-                loadResumes();
+                return;
             }
+
+            const u = data.user || {};
+
+            // Helper to avoid "undefined" / empty
+            const safe = (val, fallback = "Not provided") =>
+                val === undefined || val === null || val === "" || val === "undefined" || val === "null"
+                    ? fallback
+                    : val;
+
+            // Name: try fullName, otherwise first + last
+            const fullNameRaw =
+                u.fullName ||
+                [u.firstName, u.lastName].filter(Boolean).join(" ");
+
+            const fullName = safe(fullNameRaw);
+
+            // Address – supports both flat fields and nested address object
+            const addr = u.address || {};
+            const street = safe(addr.street || u.street, "Not provided");
+            const city   = safe(addr.city   || u.city,   "Not provided");
+            const state  = safe(addr.state  || u.state,  "Not provided");
+            const zip    = safe(addr.zip    || u.zip,    "Not provided");
+
+            // Education – supports nested education object
+            const edu = u.education || {};
+            const college     = safe(edu.college     || u.college);
+            const certificate = safe(edu.certificate || u.certificate);
+            const gradDate    = safe(edu.gradDate    || u.gradDate);
+
+            document.getElementById("personalData").innerHTML = `
+      <p><b>Name:</b> ${fullName}</p>
+      <p><b>Email:</b> ${safe(u.email)}</p>
+      <p><b>Birthday:</b> ${safe(u.birthday)}</p>
+      <p><b>Occupation:</b> ${safe(u.occupation)}</p>
+
+      <h3>Address</h3>
+      <p><b>Street:</b> ${street}</p>
+      <p><b>City:</b> ${city}</p>
+      <p><b>State:</b> ${state}</p>
+      <p><b>ZIP:</b> ${zip}</p>
+
+      <h3>College Information</h3>
+      <p><b>College:</b> ${college}</p>
+      <p><b>Degree:</b> ${certificate}</p>
+      <p><b>Graduation:</b> ${gradDate}</p>
+    `;
+
+            // Profile picture
+            const img = document.getElementById("profilePic");
+            if (img) {
+                img.src = u.profilePicPath || "https://via.placeholder.com/80";
+            }
+
+            // Load other dashboard data
+            loadJobs();
+            loadInterviews();
+            loadSuggestions();
+            loadResumes();
+        })
+        .catch(err => {
+            console.error("Error checking session:", err);
+            window.location.href = "/login.html";
         });
 
     // ---- RESUME UPLOAD + LIST + VIEWER ----
