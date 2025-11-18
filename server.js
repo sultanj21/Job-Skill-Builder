@@ -1,4 +1,6 @@
-// ---------- ENV + IMPORTS ----------
+// ======================================================
+//  ENV + IMPORTS
+// ======================================================
 require("dotenv").config();
 
 const express = require("express");
@@ -14,73 +16,77 @@ const fs = require("fs");
 const app = express();
 const parser = new Parser();
 
-// ---------- SUPABASE CONFIG ----------
+// ======================================================
+//  SUPABASE CONFIG
+// ======================================================
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    console.error("❌ Missing SUPABASE_URL or SUPABASE_KEY in .env");
+    console.error("❌ Missing SUPABASE_URL or SUPABASE_KEY in environment");
     process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 console.log("🔗 Supabase Dashboard:", supabaseUrl);
 
-// ---------- MIDDLEWARE ----------
+// ======================================================
+//  MIDDLEWARE
+// ======================================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// 🔹 Make the login page the very first thing people see:
+// Login page first
 app.get("/", (req, res) => {
     res.redirect("/login.html");
 });
 
-// Serve static frontend files
+// static frontend
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
     session({
-        secret: process.env.SESSION_SECRET || "pathway-secret",
+        secret: process.env.SESSION_SECRET || "fallback-secret",
         resave: false,
         saveUninitialized: true,
-        cookie: {
-            maxAge: 1000 * 60 * 60 * 24, // 1 day
-        },
+        cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 day
     })
 );
 
-// ---------- MULTER: PROFILE PICS (LOCAL DISK) ----------
+// ======================================================
+//  MULTER: PROFILE PICTURES (LOCAL)
+// ======================================================
 const profileDir = path.join(__dirname, "public/profile");
-if (!fs.existsSync(profileDir)) {
-    fs.mkdirSync(profileDir, { recursive: true });
-}
+if (!fs.existsSync(profileDir)) fs.mkdirSync(profileDir, { recursive: true });
 
-const avatarStorage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, profileDir),
-    filename: (req, file, cb) =>
-        cb(null, Date.now() + "-" + file.originalname.replace(/\s+/g, "_")),
+const avatarUpload = multer({
+    storage: multer.diskStorage({
+        destination: profileDir,
+        filename: (_, file, cb) =>
+            cb(null, Date.now() + "-" + file.originalname.replace(/\s+/g, "_"))
+    })
 });
 
-const avatarUpload = multer({ storage: avatarStorage });
+// ======================================================
+//  MULTER: RESUMES (TEMP → SUPABASE STORAGE)
+// ======================================================
+const resumesTmpDir = path.join(__dirname, "tmp/resumes");
+if (!fs.existsSync(resumesTmpDir)) fs.mkdirSync(resumesTmpDir, { recursive: true });
 
-// ---------- MULTER: RESUMES (TEMP DISK, THEN SUPABASE STORAGE) ----------
-const resumesTmpDir = path.join(__dirname, "tmp", "resumes");
-if (!fs.existsSync(resumesTmpDir)) {
-    fs.mkdirSync(resumesTmpDir, { recursive: true });
-}
-
-const resumeStorage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, resumesTmpDir),
-    filename: (req, file, cb) =>
-        cb(null, Date.now() + "-" + file.originalname.replace(/\s+/g, "_")),
+const resumeUpload = multer({
+    storage: multer.diskStorage({
+        destination: resumesTmpDir,
+        filename: (_, file, cb) =>
+            cb(null, Date.now() + "-" + file.originalname.replace(/\s+/g, "_"))
+    })
 });
-
-const resumeUpload = multer({ storage: resumeStorage });
 
 app.use("/profile", express.static(profileDir));
 
-// ---------- HELPERS ----------
+// ======================================================
+//  HELPERS
+// ======================================================
 function requireLogin(req, res, next) {
     if (!req.session.user || !req.session.user.email) {
         return res.status(401).json({ success: false, message: "Not logged in" });
@@ -88,16 +94,24 @@ function requireLogin(req, res, next) {
     next();
 }
 
-// Small helper to read fields whether they are camelCase or snake_case
+// read from camelCase / snake_case / lowercase
 function getField(obj, ...names) {
     for (const n of names) {
-        if (obj && obj[n] != null) return obj[n];
+        if (obj && obj[n] !== undefined && obj[n] !== null) return obj[n];
     }
     return null;
 }
 
-// ---------- AUTH: REGISTER ----------
+// ======================================================
+//  REGISTER
+//  expects Supabase `users` table columns like:
+//  first_name, last_name, full_name, birthday, email, occupation,
+//  password_hash, street, city, state, zip, college, certificate,
+//  grad_date, profile_pic_path
+// ======================================================
 app.post("/api/register", async (req, res) => {
+    console.log("🟦 /api/register body:", req.body);
+
     try {
         const {
             firstName,
@@ -112,7 +126,7 @@ app.post("/api/register", async (req, res) => {
             zip,
             college,
             certificate,
-            gradDate,
+            gradDate
         } = req.body;
 
         if (!email || !password) {
@@ -128,7 +142,7 @@ app.post("/api/register", async (req, res) => {
             .eq("email", email);
 
         if (existsError) {
-            console.error("Supabase error checking existing user:", existsError);
+            console.error("❌ Supabase error checking existing user:", existsError);
             return res
                 .status(500)
                 .json({ success: false, message: "Database error" });
@@ -143,31 +157,34 @@ app.post("/api/register", async (req, res) => {
         const hash = await bcrypt.hash(password, 10);
         const fullName = `${firstName || ""} ${lastName || ""}`.trim();
 
+        // IMPORTANT: use snake_case column names to match your Supabase table
+        const insertPayload = {
+            first_name: firstName || null,
+            last_name: lastName || null,
+            full_name: fullName || null,
+            birthday: birthday || null,        // must be 'YYYY-MM-DD' or null
+            email,
+            occupation: occupation || null,
+            password_hash: hash,
+            street: street || null,
+            city: city || null,
+            state: state || null,
+            zip: zip || null,
+            college: college || null,
+            certificate: certificate || null,
+            grad_date: gradDate || null        // 'YYYY-MM-DD' or null
+        };
+
+        console.log("📝 /api/register insertPayload:", insertPayload);
+
         const { data: inserted, error: insertError } = await supabase
             .from("users")
-            .insert([
-                {
-                    firstName,
-                    lastName,
-                    fullName,
-                    birthday,
-                    email,
-                    occupation,
-                    password_hash: hash,
-                    street,
-                    city,
-                    state,
-                    zip,
-                    college,
-                    certificate,
-                    gradDate,
-                },
-            ])
+            .insert([insertPayload])
             .select("*")
             .single();
 
         if (insertError || !inserted) {
-            console.error("Supabase insert user error:", insertError);
+            console.error("❌ Supabase insert user error:", insertError);
             return res
                 .status(500)
                 .json({ success: false, message: "Registration failed" });
@@ -176,20 +193,24 @@ app.post("/api/register", async (req, res) => {
         return res.json({
             success: true,
             message: "Registration successful",
-            user: {
-                id: inserted.id,
-                fullName: inserted.fullName || fullName,
-                email: inserted.email,
-            },
+            user: inserted
         });
     } catch (err) {
-        console.error("Register error:", err);
-        res.status(500).json({ success: false, message: "Server error" });
+        console.error("💥 Register error:", err);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            detail: String(err)
+        });
     }
 });
 
-// ---------- AUTH: LOGIN ----------
+// ======================================================
+//  LOGIN
+// ======================================================
 app.post("/api/login", async (req, res) => {
+    console.log("🟦 /api/login body:", req.body);
+
     try {
         const { email, password } = req.body;
 
@@ -205,7 +226,7 @@ app.post("/api/login", async (req, res) => {
             .eq("email", email);
 
         if (error) {
-            console.error("Supabase login query error:", error);
+            console.error("❌ Supabase login query error:", error);
             return res
                 .status(500)
                 .json({ success: false, message: "Database error" });
@@ -226,28 +247,31 @@ app.post("/api/login", async (req, res) => {
                 .json({ success: false, message: "Incorrect password" });
         }
 
-        // Resolve profile fields (camelCase or snake_case)
-        const firstName = getField(user, "firstName", "firstname", "first_name") || "";
-        const lastName = getField(user, "lastName", "lastname", "last_name") || "";
+        // resolve all fields with both snake_case and camelCase
+        const firstName = getField(user, "first_name", "firstName", "firstname");
+        const lastName = getField(user, "last_name", "lastName", "lastname");
         const fullName =
-            getField(user, "fullName", "fullname") ||
-            `${firstName} ${lastName}`.trim() ||
+            getField(user, "full_name", "fullName", "fullname") ||
+            `${firstName || ""} ${lastName || ""}`.trim() ||
             email;
 
-        const birthday = getField(user, "birthday", "birthdate", "dob") || null;
-        const occupation = getField(user, "occupation") || null;
-        const street = getField(user, "street") || null;
-        const city = getField(user, "city") || null;
-        const state = getField(user, "state") || null;
-        const zip = getField(user, "zip", "postal_code") || null;
-        const college = getField(user, "college") || null;
-        const certificate = getField(user, "certificate", "degree") || null;
-        const gradDate =
-            getField(user, "gradDate", "graduationDate", "graduation_date") || null;
-        const profilePicPath = getField(user, "profilePicPath", "profile_pic") || null;
+        const birthday = getField(user, "birthday", "birthdate", "dob");
+        const occupation = getField(user, "occupation");
+        const street = getField(user, "street");
+        const city = getField(user, "city");
+        const state = getField(user, "state");
+        const zip = getField(user, "zip", "postal_code");
+        const college = getField(user, "college");
+        const certificate = getField(user, "certificate", "degree");
+        const gradDate = getField(user, "grad_date", "gradDate", "graduationDate");
+        const profilePicPath = getField(
+            user,
+            "profile_pic_path",
+            "profilePicPath",
+            "profile_pic"
+        );
 
-        // Save a rich object in the session
-        req.session.user = {
+        const sessionUser = {
             id: user.id,
             email: user.email,
             firstName,
@@ -262,21 +286,25 @@ app.post("/api/login", async (req, res) => {
             college,
             certificate,
             gradDate,
-            profilePicPath,
+            profilePicPath
         };
+
+        req.session.user = sessionUser;
 
         return res.json({
             success: true,
             message: "Login successful",
-            user: req.session.user,
+            user: sessionUser
         });
     } catch (err) {
-        console.error("Login error:", err);
+        console.error("💥 Login error:", err);
         res.status(500).json({ success: false, message: "Server error" });
     }
 });
 
-// ---------- CHECK SESSION + FULL PROFILE ----------
+// ======================================================
+//  CHECK SESSION + FULL PROFILE
+// ======================================================
 app.get("/check-session", async (req, res) => {
     try {
         if (!req.session.user || !req.session.user.email) {
@@ -292,9 +320,8 @@ app.get("/check-session", async (req, res) => {
             .single();
 
         if (error || !data) {
-            // fallback to whatever is in the session
             console.error(
-                "Supabase profile fetch error (fallback to session):",
+                "Supabase profile fetch error, falling back to session:",
                 error
             );
             return res.json({ loggedIn: true, user: req.session.user });
@@ -303,15 +330,15 @@ app.get("/check-session", async (req, res) => {
         const u = data;
 
         const firstName =
-            getField(u, "firstName", "firstname", "first_name") ||
+            getField(u, "first_name", "firstName", "firstname") ||
             req.session.user.firstName ||
             "";
         const lastName =
-            getField(u, "lastName", "lastname", "last_name") ||
+            getField(u, "last_name", "lastName", "lastname") ||
             req.session.user.lastName ||
             "";
         const fullName =
-            getField(u, "fullName", "fullname") ||
+            getField(u, "full_name", "fullName", "fullname") ||
             `${firstName} ${lastName}`.trim() ||
             req.session.user.fullName ||
             "";
@@ -334,11 +361,11 @@ app.get("/check-session", async (req, res) => {
             req.session.user.certificate ||
             null;
         const gradDate =
-            getField(u, "gradDate", "graduationDate", "graduation_date") ||
+            getField(u, "grad_date", "gradDate", "graduationDate") ||
             req.session.user.gradDate ||
             null;
         const profilePicPath =
-            getField(u, "profilePicPath", "profile_pic") ||
+            getField(u, "profile_pic_path", "profilePicPath", "profile_pic") ||
             req.session.user.profilePicPath ||
             null;
 
@@ -357,30 +384,29 @@ app.get("/check-session", async (req, res) => {
             college,
             certificate,
             gradDate,
-            profilePicPath,
+            profilePicPath
         };
 
-        // keep session in sync
         req.session.user = userObj;
-
-        return res.json({
-            loggedIn: true,
-            user: userObj,
-        });
+        return res.json({ loggedIn: true, user: userObj });
     } catch (err) {
-        console.error("check-session error:", err);
+        console.error("💥 check-session error:", err);
         res.json({ loggedIn: false });
     }
 });
 
-// ---------- LOGOUT ----------
+// ======================================================
+//  LOGOUT
+// ======================================================
 app.get("/logout", (req, res) => {
     req.session.destroy(() => {
         res.json({ success: true });
     });
 });
 
-// ---------- PROFILE PICTURE UPLOAD ----------
+// ======================================================
+//  PROFILE PICTURE UPLOAD
+// ======================================================
 app.post(
     "/profile-picture",
     requireLogin,
@@ -393,10 +419,9 @@ app.post(
 
             const filePath = "/profile/" + req.file.filename;
 
-            // update user in Supabase
             const { error } = await supabase
                 .from("users")
-                .update({ profilePicPath: filePath })
+                .update({ profile_pic_path: filePath })
                 .eq("id", req.session.user.id);
 
             if (error) {
@@ -408,7 +433,7 @@ app.post(
             res.json({
                 success: true,
                 message: "Profile picture updated",
-                path: filePath,
+                path: filePath
             });
         } catch (err) {
             console.error("profile-picture error:", err);
@@ -417,7 +442,9 @@ app.post(
     }
 );
 
-// ---------- RESUME UPLOAD (SUPABASE STORAGE "resumes" BUCKET") ----------
+// ======================================================
+//  RESUME UPLOAD → SUPABASE STORAGE
+// ======================================================
 app.post(
     "/uploadResume",
     requireLogin,
@@ -438,28 +465,27 @@ app.post(
                 .from("resumes")
                 .upload(storagePath, fileBuffer, {
                     contentType: req.file.mimetype || "application/octet-stream",
-                    upsert: false,
+                    upsert: false
                 });
 
-            // remove temp file
             fs.unlinkSync(localPath);
 
             if (uploadError) {
                 console.error("Supabase resume upload error:", uploadError);
                 return res.json({
                     success: false,
-                    message: "Error uploading resume",
+                    message: "Error uploading resume"
                 });
             }
 
             const {
-                data: { publicUrl },
+                data: { publicUrl }
             } = supabase.storage.from("resumes").getPublicUrl(storagePath);
 
             return res.json({
                 success: true,
                 message: "Resume uploaded successfully",
-                url: publicUrl,
+                url: publicUrl
             });
         } catch (err) {
             console.error("uploadResume error:", err);
@@ -468,7 +494,9 @@ app.post(
     }
 );
 
-// ---------- LIST RESUMES FOR USER ----------
+// ======================================================
+//  LIST RESUMES
+// ======================================================
 app.get("/resumes", requireLogin, async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -478,15 +506,14 @@ app.get("/resumes", requireLogin, async (req, res) => {
             .from("resumes")
             .list(folder, {
                 limit: 100,
-                offset: 0,
-                sortBy: { column: "created_at", order: "desc" },
+                offset: 0
             });
 
         if (error) {
             console.error("Supabase list resumes error:", error);
             return res.json({
                 success: false,
-                message: "Could not list resumes",
+                message: "Could not list resumes"
             });
         }
 
@@ -497,13 +524,13 @@ app.get("/resumes", requireLogin, async (req, res) => {
         const files = data.map((f) => {
             const fullPath = `${folder}/${f.name}`;
             const {
-                data: { publicUrl },
+                data: { publicUrl }
             } = supabase.storage.from("resumes").getPublicUrl(fullPath);
 
             return {
                 name: f.name,
                 url: publicUrl,
-                createdAt: f.created_at || null,
+                createdAt: f.created_at || null
             };
         });
 
@@ -514,13 +541,15 @@ app.get("/resumes", requireLogin, async (req, res) => {
     }
 });
 
-// ---------- AI RESUME FORMATTER ----------
+// ======================================================
+//  AI RESUME FORMATTER
+// ======================================================
 app.post("/api/format-resume", requireLogin, (req, res) => {
     const { text } = req.body;
     if (!text || !text.trim()) {
         return res.json({
             success: false,
-            message: "No resume text provided",
+            message: "No resume text provided"
         });
     }
 
@@ -535,12 +564,15 @@ app.post("/api/format-resume", requireLogin, (req, res) => {
         return l;
     });
 
-    const formattedText = "Professional Summary:\n" + formattedLines.join("\n");
+    const formattedText =
+        "Professional Summary:\n" + formattedLines.join("\n");
 
     res.json({ success: true, formattedText });
 });
 
-// ---------- JOB TRACKER ----------
+// ======================================================
+//  JOB TRACKER
+// ======================================================
 app.post("/api/jobs", requireLogin, async (req, res) => {
     try {
         const { title, company, status, date } = req.body;
@@ -554,8 +586,8 @@ app.post("/api/jobs", requireLogin, async (req, res) => {
                     title,
                     company,
                     status,
-                    date,
-                },
+                    date
+                }
             ])
             .select("*")
             .single();
@@ -594,7 +626,9 @@ app.get("/api/jobs", requireLogin, async (req, res) => {
     }
 });
 
-// ---------- INTERVIEWS ----------
+// ======================================================
+//  INTERVIEWS
+// ======================================================
 app.post("/api/interviews", requireLogin, async (req, res) => {
     try {
         const { company, role, date, time, notes } = req.body;
@@ -609,8 +643,8 @@ app.post("/api/interviews", requireLogin, async (req, res) => {
                     role,
                     date,
                     time,
-                    notes,
-                },
+                    notes
+                }
             ])
             .select("*")
             .single();
@@ -619,7 +653,7 @@ app.post("/api/interviews", requireLogin, async (req, res) => {
             console.error("Supabase insert interview error:", error);
             return res.json({
                 success: false,
-                message: "Could not add interview",
+                message: "Could not add interview"
             });
         }
 
@@ -653,46 +687,50 @@ app.get("/api/interviews", requireLogin, async (req, res) => {
     }
 });
 
-// ---------- AI JOB SUGGESTIONS (STATIC) ----------
+// ======================================================
+//  AI JOB SUGGESTIONS
+// ======================================================
 app.get("/api/job-suggestions", requireLogin, (req, res) => {
     const suggestions = [
         {
             title: "Junior Software Developer",
             company: "TechNova",
-            location: "Remote",
+            location: "Remote"
         },
         {
             title: "Backend Engineer Intern",
             company: "CloudCore",
-            location: "Atlanta, GA",
+            location: "Atlanta, GA"
         },
         {
             title: "Full-Stack Developer",
             company: "Pathway Labs",
-            location: "Hybrid",
+            location: "Hybrid"
         },
         {
             title: "Front-End React Developer",
             company: "UIWorks",
-            location: "Remote",
+            location: "Remote"
         },
         {
             title: "Cybersecurity Analyst Intern",
             company: "SecureNet",
-            location: "On-site",
-        },
+            location: "On-site"
+        }
     ];
     res.json({ success: true, suggestions });
 });
 
-// ---------- YAHOO NEWS EXAMPLE ----------
+// ======================================================
+//  NEWS
+// ======================================================
 app.get("/api/news", async (req, res) => {
     try {
         const feed = await parser.parseURL("https://www.yahoo.com/news/rss");
         const articles = feed.items.slice(0, 10).map((item) => ({
             title: item.title,
             link: item.link,
-            pubDate: item.pubDate,
+            pubDate: item.pubDate
         }));
         res.json({ success: true, articles });
     } catch (err) {
@@ -701,12 +739,13 @@ app.get("/api/news", async (req, res) => {
     }
 });
 
-// ---------- START SERVER ----------
+// ======================================================
+//  START SERVER
+// ======================================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
 
-    // 🔗 SHOW RENDER PUBLIC URL AUTOMATICALLY
     if (process.env.RENDER_EXTERNAL_URL) {
         console.log(`🌍 Live URL: ${process.env.RENDER_EXTERNAL_URL}`);
     } else {
