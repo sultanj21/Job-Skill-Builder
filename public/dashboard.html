@@ -3,62 +3,47 @@
 <head>
     <title>Dashboard</title>
     <style>
-        body {
-            font-family: Arial;
-            background: #f0f2f5;
-            padding: 20px;
-        }
-
+        body { font-family: Arial; background: #f0f2f5; padding: 20px; }
         .box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            width: 600px;
-            margin-bottom: 20px;
+            background: white; padding: 20px; border-radius: 12px;
+            width: 600px; margin-bottom: 20px;
             box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .news-panel a {
-            display: block;
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-            text-decoration: none;
-            color: black;
-            font-size: 16px;
-        }
-
-        .news-panel a:hover {
-            color: #0078ff;
         }
     </style>
 </head>
 <body>
 
-<h1>Welcome to Your Dashboard 👋</h1>
+<h1>Dashboard</h1>
 
-<!-- UPLOAD BOX -->
-<div class="box">
-    <h2>Upload Your Resume</h2>
-
-    <form id="resumeForm" enctype="multipart/form-data">
-        <input type="file" name="resume" required>
+<div id="resumeSection" class="box" style="display:none;">
+    <h2>Upload Resume</h2>
+    <form id="resumeForm">
+        <input type="file" name="resume" required />
         <button type="submit">Upload</button>
     </form>
-
     <p id="uploadResult"></p>
 </div>
 
-<!-- NEWS PANEL -->
-<div class="box news-panel">
+<div class="box">
     <h2>Latest Yahoo News</h2>
     <div id="news-list">Loading...</div>
 </div>
 
 <script>
-    // ---------------- UPLOAD RESUME ----------------
-    document.getElementById("resumeForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
+    // --- CHECK LOGIN BEFORE SHOWING ANYTHING ---
+    fetch("/check-session")
+        .then(res => res.json())
+        .then(data => {
+            if (!data.loggedIn) {
+                window.location.href = "/login.html";
+            } else {
+                document.getElementById("resumeSection").style.display = "block";
+            }
+        });
 
+    // --- RESUME UPLOAD ---
+    document.getElementById("resumeForm").onsubmit = async (e) => {
+        e.preventDefault();
         let formData = new FormData(e.target);
 
         let res = await fetch("/uploadResume", {
@@ -66,30 +51,29 @@
             body: formData
         });
 
-        let data = await res.json();
-        document.getElementById("uploadResult").innerText = data.message;
-    });
+        let out = await res.json();
+        document.getElementById("uploadResult").innerText = out.message;
+    };
 
-    // ---------------- LOAD NEWS ----------------
+    // --- LOAD NEWS ---
     async function loadNews() {
-        let res = await fetch("/api/news");
-        let data = await res.json();
+        const res = await fetch("/api/news");
+        const data = await res.json();
 
-        let container = document.getElementById("news-list");
+        const container = document.getElementById("news-list");
 
         if (!data.success) {
-            container.innerHTML = "Error loading news.";
+            container.innerHTML = "Could not load news.";
             return;
         }
 
         container.innerHTML = data.articles.map(a => `
-                <a href="${a.link}" target="_blank">
-                    ${a.title} <br>
-                    <small>${new Date(a.pubDate).toLocaleString()}</small>
-                </a>
-            `).join("");
+        <p>
+            <a href="${a.link}" target="_blank">${a.title}</a><br>
+            <small>${new Date(a.pubDate).toLocaleString()}</small>
+        </p>
+    `).join("");
     }
-
     loadNews();
 </script>
 
