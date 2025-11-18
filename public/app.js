@@ -105,10 +105,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getPendingApplications = () => JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
     const savePendingApplications = (queue) => localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
+    const getTrackedApplications = () => JSON.parse(localStorage.getItem(TRACKED_KEY) || "[]");
+    const saveTrackedApplications = (entries) => localStorage.setItem(TRACKED_KEY, JSON.stringify(entries));
+    const generateTrackerId = () => {
+        if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+        return `job_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+    };
+    const createTrackedEntry = (job, defaults = {}) => {
+        const now = new Date().toISOString();
+        const status = defaults.status || "applied";
+        return {
+            id: job.id || generateTrackerId(),
+            title: job.title || "Untitled role",
+            company: job.company || "Unknown company",
+            location: job.location || "",
+            salary: job.salary || "",
+            type: job.type || "",
+            link: job.link || "",
+            description: job.description || "",
+            status,
+            loggedAt: now,
+            nextStepDate: defaults.nextStepDate || "",
+            notes: defaults.notes || "",
+            stageHistory: [
+                ...(Array.isArray(job.stageHistory) ? job.stageHistory : []),
+                { status, timestamp: now }
+            ]
+        };
+    };
     const logApplication = (job) => {
-        const log = JSON.parse(localStorage.getItem(TRACKED_KEY) || "[]");
-        log.push({ ...job, loggedAt: new Date().toISOString() });
-        localStorage.setItem(TRACKED_KEY, JSON.stringify(log));
+        const log = getTrackedApplications();
+        const entry = createTrackedEntry(job, { status: "applied" });
+        log.unshift(entry);
+        saveTrackedApplications(log);
     };
     const renderPendingBanner = () => {
         if (!pendingBanner) return;
