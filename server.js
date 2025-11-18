@@ -31,15 +31,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// Always show login first
-app.get("/", (req, res) => {
-    res.redirect("/login.html");
-});
-
-// Serve static frontend files
+// serve static frontend files from /public
 app.use(express.static(path.join(__dirname, "public")));
 
-// Sessions (use env secret in production)
 app.use(
     session({
         secret: process.env.SESSION_SECRET || "pathway-secret",
@@ -50,6 +44,11 @@ app.use(
         },
     })
 );
+
+// ---------- ROOT ----------
+app.get("/", (req, res) => {
+    res.redirect("/login.html");
+});
 
 // ---------- MULTER: PROFILE PICS (LOCAL DISK) ----------
 const profileDir = path.join(__dirname, "public/profile");
@@ -89,6 +88,14 @@ function requireLogin(req, res, next) {
     next();
 }
 
+// read either camelCase or snake_case from Supabase row
+function getField(obj, ...names) {
+    for (const n of names) {
+        if (obj && obj[n] != null) return obj[n];
+    }
+    return null;
+}
+
 // ---------- AUTH: REGISTER ----------
 app.post("/api/register", async (req, res) => {
     try {
@@ -108,7 +115,7 @@ app.post("/api/register", async (req, res) => {
             gradDate,
         } = req.body;
 
-        console.log("🟦 /api/register body:", req.body);
+        console.log("🟩 /api/register body:", req.body);
 
         if (!email || !password) {
             return res
@@ -120,17 +127,16 @@ app.post("/api/register", async (req, res) => {
         const { data: existing, error: existsError } = await supabase
             .from("users")
             .select("id")
-            .eq("email", email)
-            .maybeSingle();
+            .eq("email", email);
 
         if (existsError) {
             console.error("Supabase error checking existing user:", existsError);
             return res
                 .status(500)
-                .json({ success: false, message: "Database error (check email)" });
+                .json({ success: false, message: "Database error" });
         }
 
-        if (existing) {
+        if (existing && existing.length > 0) {
             return res
                 .status(400)
                 .json({ success: false, message: "Email already registered" });
@@ -139,13 +145,14 @@ app.post("/api/register", async (req, res) => {
         const hash = await bcrypt.hash(password, 10);
         const fullName = `${firstName || ""} ${lastName || ""}`.trim();
 
+        // IMPORTANT: column names match Supabase schema exactly
         const { data: inserted, error: insertError } = await supabase
             .from("users")
             .insert([
                 {
-                    first_name: firstName || null,
-                    last_name: lastName || null,
-                    full_name: fullName || null,
+                    firstname: firstName || null,
+                    lastname: lastName || null,
+                    fullname: fullName || null,
                     birthday: birthday || null,
                     email,
                     occupation: occupation || null,
@@ -156,7 +163,8 @@ app.post("/api/register", async (req, res) => {
                     zip: zip || null,
                     college: college || null,
                     certificate: certificate || null,
-                    grad_date: gradDate || null,
+                    graddate: gradDate || null,
+                    profilepicpath: null,
                 },
             ])
             .select("*")
@@ -166,7 +174,7 @@ app.post("/api/register", async (req, res) => {
             console.error("Supabase insert user error:", insertError);
             return res
                 .status(500)
-                .json({ success: false, message: "Registration failed (DB)" });
+                .json({ success: false, message: "Registration failed" });
         }
 
         return res.json({
@@ -174,7 +182,7 @@ app.post("/api/register", async (req, res) => {
             message: "Registration successful",
             user: {
                 id: inserted.id,
-                fullName: inserted.full_name || fullName || "",
+                fullName: inserted.fullname || fullName,
                 email: inserted.email,
             },
         });
@@ -196,24 +204,20 @@ app.post("/api/login", async (req, res) => {
                 .json({ success: false, message: "Email and password required" });
         }
 
-        const { data: user, error } = await supabase
+        const { data, error } = await supabase
             .from("users")
             .select("*")
             .eq("email", email)
             .single();
 
-        if (error) {
+        if (error || !data) {
             console.error("Supabase login query error:", error);
-            return res
-                .status(500)
-                .json({ success: false, message: "Database error" });
-        }
-
-        if (!user) {
             return res
                 .status(400)
                 .json({ success: false, message: "User not found" });
         }
+
+        const user = data;
 
         const ok = await bcrypt.compare(password, user.password_hash || "");
         if (!ok) {
@@ -222,34 +226,50 @@ app.post("/api/login", async (req, res) => {
                 .json({ success: false, message: "Incorrect password" });
         }
 
-        const firstName = user.first_name || "";
-        const lastName = user.last_name || "";
-        const fullName = user.full_name || `${firstName} ${lastName}`.trim() || email;
+        const firstName =
+            getField(user, "firstname", "firstName", "first_name") || "";
+        const lastName =
+            getField(user, "lastname", "lastName", "last_name") || "";
+        const fullName =
+            getField(user, "fullname", "fullName") ||
+            `${firstName} ${lastName}`.trim() ||
+            email;
 
-        const sessionUser = {
+        const birthday = getField(user, "birthday") || null;
+        const occupation = getField(user, "occupation") || null;
+        const street = getField(user, "street") || null;
+        const city = getField(user, "city") || null;
+        const state = getField(user, "state") || null;
+        const zip = getField(user, "zip") || null;
+        const college = getField(user, "college") || null;
+        const certificate = getField(user, "certificate") || null;
+        const gradDate = getField(user, "graddate", "gradDate") || null;
+        const profilePicPath =
+            getField(user, "profilepicpath", "profilePicPath") || null;
+
+        // Save full object in session
+        req.session.user = {
             id: user.id,
             email: user.email,
             firstName,
             lastName,
             fullName,
-            birthday: user.birthday,
-            occupation: user.occupation,
-            street: user.street,
-            city: user.city,
-            state: user.state,
-            zip: user.zip,
-            college: user.college,
-            certificate: user.certificate,
-            gradDate: user.grad_date,
-            profilePicPath: user.profile_pic_path,
+            birthday,
+            occupation,
+            street,
+            city,
+            state,
+            zip,
+            college,
+            certificate,
+            gradDate,
+            profilePicPath,
         };
-
-        req.session.user = sessionUser;
 
         return res.json({
             success: true,
             message: "Login successful",
-            user: sessionUser,
+            user: req.session.user,
         });
     } catch (err) {
         console.error("Login error:", err);
@@ -266,13 +286,13 @@ app.get("/check-session", async (req, res) => {
 
         const email = req.session.user.email;
 
-        const { data: user, error } = await supabase
+        const { data, error } = await supabase
             .from("users")
             .select("*")
             .eq("email", email)
             .single();
 
-        if (error || !user) {
+        if (error || !data) {
             console.error(
                 "Supabase profile fetch error (fallback to session):",
                 error
@@ -280,37 +300,68 @@ app.get("/check-session", async (req, res) => {
             return res.json({ loggedIn: true, user: req.session.user });
         }
 
-        const firstName = user.first_name || "";
-        const lastName = user.last_name || "";
+        const u = data;
+
+        const firstName =
+            getField(u, "firstname", "firstName", "first_name") ||
+            req.session.user.firstName ||
+            "";
+        const lastName =
+            getField(u, "lastname", "lastName", "last_name") ||
+            req.session.user.lastName ||
+            "";
         const fullName =
-            user.full_name ||
+            getField(u, "fullname", "fullName") ||
             `${firstName} ${lastName}`.trim() ||
             req.session.user.fullName ||
             "";
 
-        const profileUser = {
-            id: user.id,
-            email: user.email,
+        const birthday =
+            getField(u, "birthday") || req.session.user.birthday || null;
+        const occupation =
+            getField(u, "occupation") || req.session.user.occupation || null;
+        const street = getField(u, "street") || req.session.user.street || null;
+        const city = getField(u, "city") || req.session.user.city || null;
+        const state = getField(u, "state") || req.session.user.state || null;
+        const zip = getField(u, "zip") || req.session.user.zip || null;
+        const college =
+            getField(u, "college") || req.session.user.college || null;
+        const certificate =
+            getField(u, "certificate") ||
+            req.session.user.certificate ||
+            null;
+        const gradDate =
+            getField(u, "graddate", "gradDate") ||
+            req.session.user.gradDate ||
+            null;
+        const profilePicPath =
+            getField(u, "profilepicpath", "profilePicPath") ||
+            req.session.user.profilePicPath ||
+            null;
+
+        const userObj = {
+            id: u.id,
+            email: u.email,
             firstName,
             lastName,
             fullName,
-            birthday: user.birthday,
-            occupation: user.occupation,
-            street: user.street,
-            city: user.city,
-            state: user.state,
-            zip: user.zip,
-            college: user.college,
-            certificate: user.certificate,
-            gradDate: user.grad_date,
-            profilePicPath: user.profile_pic_path,
+            birthday,
+            occupation,
+            street,
+            city,
+            state,
+            zip,
+            college,
+            certificate,
+            gradDate,
+            profilePicPath,
         };
 
-        req.session.user = profileUser;
+        req.session.user = userObj;
 
         return res.json({
             loggedIn: true,
-            user: profileUser,
+            user: userObj,
         });
     } catch (err) {
         console.error("check-session error:", err);
@@ -340,7 +391,7 @@ app.post(
 
             const { error } = await supabase
                 .from("users")
-                .update({ profile_pic_path: filePath })
+                .update({ profilepicpath: filePath })
                 .eq("id", req.session.user.id);
 
             if (error) {
@@ -361,7 +412,7 @@ app.post(
     }
 );
 
-// ---------- RESUME UPLOAD (SUPABASE STORAGE "resumes" BUCKET") ----------
+// ---------- RESUME UPLOAD (SUPABASE STORAGE + TABLE) ----------
 app.post(
     "/uploadResume",
     requireLogin,
@@ -399,6 +450,15 @@ app.post(
                 data: { publicUrl },
             } = supabase.storage.from("resumes").getPublicUrl(storagePath);
 
+            // also store a record in resumes table
+            await supabase.from("resumes").insert([
+                {
+                    user_id: userId,
+                    file_name: req.file.originalname,
+                    file_url: publicUrl,
+                },
+            ]);
+
             return res.json({
                 success: true,
                 message: "Resume uploaded successfully",
@@ -411,19 +471,16 @@ app.post(
     }
 );
 
-// ---------- LIST RESUMES FOR USER ----------
+// ---------- LIST RESUMES FOR USER (FROM TABLE) ----------
 app.get("/resumes", requireLogin, async (req, res) => {
     try {
         const userId = req.session.user.id;
-        const folder = `user-${userId}`;
 
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabase
             .from("resumes")
-            .list(folder, {
-                limit: 100,
-                offset: 0,
-                sortBy: { column: "created_at", order: "desc" },
-            });
+            .select("*")
+            .eq("user_id", userId)
+            .order("uploaded_at", { ascending: false });
 
         if (error) {
             console.error("Supabase list resumes error:", error);
@@ -433,22 +490,13 @@ app.get("/resumes", requireLogin, async (req, res) => {
             });
         }
 
-        if (!data || !data.length) {
-            return res.json({ success: true, files: [] });
-        }
-
-        const files = data.map((f) => {
-            const fullPath = `${folder}/${f.name}`;
-            const {
-                data: { publicUrl },
-            } = supabase.storage.from("resumes").getPublicUrl(fullPath);
-
-            return {
-                name: f.name,
-                url: publicUrl,
-                createdAt: f.created_at || null,
-            };
-        });
+        const files =
+            (data || []).map((f) => ({
+                id: f.id,
+                name: f.file_name,
+                url: f.file_url,
+                createdAt: f.uploaded_at,
+            })) || [];
 
         res.json({ success: true, files });
     } catch (err) {
@@ -497,7 +545,7 @@ app.post("/api/jobs", requireLogin, async (req, res) => {
                     title,
                     company,
                     status,
-                    date: date || null,
+                    date,
                 },
             ])
             .select("*")
@@ -550,9 +598,9 @@ app.post("/api/interviews", requireLogin, async (req, res) => {
                     user_id: userId,
                     company,
                     role,
-                    date: date || null,
-                    time: time || null,
-                    notes: notes || null,
+                    date,
+                    time,
+                    notes,
                 },
             ])
             .select("*")
@@ -648,6 +696,7 @@ app.get("/api/news", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
+
     if (process.env.RENDER_EXTERNAL_URL) {
         console.log(`🌍 Live URL: ${process.env.RENDER_EXTERNAL_URL}`);
     } else {
