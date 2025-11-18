@@ -1,99 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Register – Education</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Register · College</title>
+    <link rel="stylesheet" href="style.css"/>
 </head>
-<body class="page auth-page">
-<header class="top-bar">
-    <div class="logo">Pathway</div>
-    <nav>
-        <a href="login.html">Login</a>
-    </nav>
-</header>
+<body>
+<div class="container">
+    <h2>Step 3 · College & Graduation</h2>
+    <div class="progress"><span style="width:100%"></span></div>
 
-<main class="auth-container">
-    <div class="auth-card">
-        <h2>Step 3 of 3 – Education</h2>
-        <form id="collegeForm">
-            <div class="form-group">
-                <label for="college">College</label>
-                <input id="college" name="college" />
-            </div>
+    <form id="collegeForm">
+        <div class="form-group">
+            <label for="college">College / University</label>
+            <input id="college" type="text" placeholder="Start typing..."/>
+            <div class="suggest" id="collegeList"></div>
+            <div class="error" id="errCollege">Please enter/select a college</div>
+        </div>
 
-            <div class="form-group">
-                <label for="certificate">Certificate / Degree</label>
-                <input id="certificate" name="certificate" />
-            </div>
+        <div class="form-group">
+            <label for="certificate">Certificate / Degree</label>
+            <input id="certificate" type="text" placeholder="BSc Computer Science, etc."/>
+            <div class="error" id="errCertificate">Please enter your certificate/degree</div>
+        </div>
 
-            <div class="form-group">
-                <label for="gradDate">Graduation Date</label>
-                <input id="gradDate" name="gradDate" type="date" />
-            </div>
+        <div class="form-group">
+            <label for="gradDate">Graduation date</label>
+            <input id="gradDate" type="date"/>
+            <div class="error" id="errGradDate">Please select graduation date</div>
+        </div>
 
-            <div class="form-footer space-between">
-                <button type="button" class="btn-outline" id="backBtn">
-                    Back
-                </button>
-                <button type="submit" class="btn-primary">
-                    Finish & Register
-                </button>
-            </div>
-        </form>
-    </div>
-</main>
+        <button id="submitBtn" type="button" disabled>Submit Registration ✅</button>
+        <p id="message"></p>
+    </form>
+</div>
 
-<script src="app.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const form = document.getElementById("collegeForm");
+    const box = id => document.getElementById(id);
+    const reg = JSON.parse(localStorage.getItem("regData")||"null");
+    if(!reg){ alert("Please complete previous steps first."); location.href="register_personal.html"; }
 
-        AppUtils.loadStepData("register_step_college", form);
+    const submitBtn = box("submitBtn");
+    const list = box("collegeList");
+    const collegeInput = box("college");
 
-        document.getElementById("backBtn").addEventListener("click", () => {
-            AppUtils.saveStepData("register_step_college", form);
-            window.location.href = "register_address.html";
-        });
+    async function searchColleges(q){
+        const res = await fetch(`/api/colleges?search=${encodeURIComponent(q)}`);
+        return res.json();
+    }
+    collegeInput.addEventListener("input", async ()=>{
+        const q = collegeInput.value.trim();
+        if(q.length<3){ list.style.display="none"; list.innerHTML=""; validate(); return; }
+        const items = await searchColleges(q);
+        if(!items.length){ list.style.display="none"; list.innerHTML=""; validate(); return; }
+        list.innerHTML = items.map(c=>`<div>${c}</div>`).join("");
+        list.style.display="block";
+        [...list.children].forEach(div => div.addEventListener("click",()=>{
+            collegeInput.value = div.textContent;
+            list.style.display="none";
+            validate();
+        }));
+        validate();
+    });
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            AppUtils.saveStepData("register_step_college", form);
+    ["certificate","gradDate"].forEach(id=>box(id).addEventListener("input", validate));
 
-            const allData = AppUtils.collectAllRegistrationData();
-            if (!allData) {
-                AppUtils.showBanner("Missing registration data.", "error");
-                return;
-            }
+    function validate(){
+        let ok = true;
+        const set = (errId, cond)=>{ box(errId).style.display = cond ? "none":"block"; if(!cond) ok=false; };
+        set("errCollege", !!box("college").value.trim());
+        set("errCertificate", !!box("certificate").value.trim());
+        set("errGradDate", !!box("gradDate").value);
+        submitBtn.disabled = !ok;
+        submitBtn.classList.toggle("enabled", ok);
+        return ok;
+    }
 
-            // remove confirmPassword before sending to server
-            delete allData.confirmPassword;
+    submitBtn.addEventListener("click", async ()=>{
+        if(!validate()) return;
+        const payload = {
+            firstName: reg.firstName,
+            lastName: reg.lastName,
+            birthday: reg.birthday,
+            email: reg.email,
+            occupation: reg.occupation,
+            password: reg.password,
+            confirmPassword: reg.confirmPassword,
+            street: reg.street,
+            city: reg.city,
+            state: reg.state,
+            zip: reg.zip,
+            college: box("college").value.trim(),
+            certificate: box("certificate").value.trim(),
+            gradDate: box("gradDate").value
+        };
 
-            try {
-                const res = await fetch("/register", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(allData),
-                });
-                const data = await res.json();
+        const msg = box("message");
+        msg.style.color="#333"; msg.textContent="⏳ Submitting...";
 
-                if (data.success) {
-                    AppUtils.showBanner(data.message, "success");
-                    sessionStorage.removeItem("register_step_personal");
-                    sessionStorage.removeItem("register_step_address");
-                    sessionStorage.removeItem("register_step_college");
-                    window.location.href = "/login.html";
-                } else {
-                    AppUtils.showBanner(
-                        data.message || "Server error. Try again.",
-                        "error"
-                    );
-                }
-            } catch (err) {
-                console.error("Register error:", err);
-                AppUtils.showBanner("Server error. Try again.", "error");
-            }
-        });
+        try{
+            const res = await fetch("/api/register",{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+            const data = await res.json();
+            if(!res.ok){ msg.style.color="var(--bad)"; msg.textContent = `❌ ${data.message || "Registration failed"}`; return; }
+
+            msg.style.color="var(--ok)";
+            msg.innerHTML = `🎉 Registration successful!<br/>Your unique ID: <b>${data.user.uniqueId}</b>`;
+            localStorage.removeItem("regData");
+            setTimeout(()=> location.href="login.html", 1400);
+        }catch(e){
+            msg.style.color="var(--bad)"; msg.textContent="Server error. Try again.";
+        }
     });
 </script>
 </body>

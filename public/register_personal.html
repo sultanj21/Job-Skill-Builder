@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Register · Personal Info</title>
+    <link rel="stylesheet" href="style.css"/>
+    <style>
+        .toggle-pass {
+            position: absolute;
+            right: 14px;
+            top: 40px;
+            cursor: pointer;
+            color: #6b7280;
+            transition: 0.2s ease;
+        }
+        .toggle-pass:hover { color: #333; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Step 1 · Personal Info</h2>
+    <div class="progress"><span style="width:33%"></span></div>
+
+    <form id="personalForm">
+        <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input id="firstName" type="text" placeholder="Jane"/>
+            <div class="error" id="errFirstName">Please enter first name</div>
+        </div>
+
+        <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input id="lastName" type="text" placeholder="Doe"/>
+            <div class="error" id="errLastName">Please enter last name</div>
+        </div>
+
+        <div class="form-group">
+            <label for="birthday">Birthday</label>
+            <input id="birthday" type="date"/>
+            <div class="error" id="errBirthday">Please select birthday</div>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="you@email.com"/>
+            <div class="error" id="errEmail">Enter a valid email</div>
+        </div>
+
+        <div class="form-group">
+            <label for="occupation">Occupation / Student</label>
+            <input id="occupation" type="text" placeholder="Student, Engineer, etc."/>
+            <div class="error" id="errOccupation">Please enter occupation</div>
+        </div>
+
+        <div class="form-group" style="position:relative">
+            <label for="password">Create Password</label>
+            <input id="password" type="password" placeholder="Min 6 characters"/>
+            <span class="toggle-pass" id="togglePassword">👁️</span>
+            <div class="error" id="errPassword">Password must be at least 6 characters</div>
+        </div>
+
+        <div class="form-group" style="position:relative">
+            <label for="confirmPassword">Confirm Password</label>
+            <input id="confirmPassword" type="password" placeholder="Retype password"/>
+            <span class="toggle-pass" id="toggleConfirm">👁️</span>
+            <div class="error" id="errConfirm">Passwords must match</div>
+        </div>
+
+        <button type="button" id="nextBtn" disabled>Next → Address</button>
+        <p id="message" class="hidden"></p>
+    </form>
+</div>
+
+<script>
+    const fields=["firstName","lastName","birthday","email","occupation","password","confirmPassword"];
+    const nextBtn=document.getElementById("nextBtn");
+    const emailRx=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function validate(){
+        let ok=true;
+        const v=id=>document.getElementById(id).value.trim();
+        const set=(id,cond)=>{document.getElementById(id).style.display=cond?"none":"block";if(!cond)ok=false;};
+        set("errFirstName",!!v("firstName"));
+        set("errLastName",!!v("lastName"));
+        set("errBirthday",!!v("birthday"));
+        set("errEmail",emailRx.test(v("email")));
+        set("errOccupation",!!v("occupation"));
+        set("errPassword",v("password").length>=6);
+        set("errConfirm",v("password")===v("confirmPassword"));
+        nextBtn.disabled=!ok;
+        nextBtn.classList.toggle("enabled",ok);
+        return ok;
+    }
+    fields.forEach(id=>document.getElementById(id).addEventListener("input",validate));
+
+    nextBtn.addEventListener("click",()=>{
+        if(!validate())return;
+        const data={};
+        fields.forEach(id=>data[id]=document.getElementById(id).value.trim());
+        localStorage.setItem("regData",JSON.stringify(data));
+        window.location.href="register_address.html";
+    });
+
+    // 👁️ Toggle Password Visibility
+    const toggle = (btnId,inputId)=>{
+        const b=document.getElementById(btnId),i=document.getElementById(inputId);
+        b.addEventListener("click",()=>{
+            const show=i.type==="password";
+            i.type=show?"text":"password";
+            b.textContent=show?"🔓":"🔒";
+        });
+    };
+    toggle("togglePassword","password");
+    toggle("toggleConfirm","confirmPassword");
+</script>
+</body>
+</html>

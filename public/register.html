@@ -2,202 +2,98 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Register – Pathway</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Register · Personal</title>
+    <link rel="stylesheet" href="style.css"/>
 </head>
-<body class="page auth-page">
-<header class="top-bar">
-    <div class="logo">Pathway</div>
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="login.html" class="btn-outline">Login</a>
-    </nav>
-</header>
+<body>
+<div class="container">
+    <h2>Step 1 · Personal Info</h2>
+    <div class="progress"><span style="width:33%"></span></div>
 
-<main class="auth-container">
-    <div class="auth-card">
-        <h2>Create your account</h2>
-        <p class="muted small">
-            One simple form – personal info, address, and education all in one place.
-        </p>
+    <form id="personalForm">
+        <div class="form-group">
+            <label for="firstName">First name</label>
+            <input id="firstName" type="text" placeholder="Jane"/>
+            <div class="error" id="errFirstName">Please enter first name</div>
+        </div>
 
-        <div id="message" class="muted small" style="min-height: 1.2rem;"></div>
+        <div class="form-group">
+            <label for="lastName">Last name</label>
+            <input id="lastName" type="text" placeholder="Doe"/>
+            <div class="error" id="errLastName">Please enter last name</div>
+        </div>
 
-        <form id="registerForm">
-            <!-- Personal info -->
-            <h3>Personal Information</h3>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="firstName">First Name<span class="required">*</span></label>
-                    <input id="firstName" name="firstName" required />
-                </div>
-                <div class="form-group">
-                    <label for="lastName">Last Name<span class="required">*</span></label>
-                    <input id="lastName" name="lastName" required />
-                </div>
-            </div>
+        <div class="form-group">
+            <label for="birthday">Birthday</label>
+            <input id="birthday" type="date"/>
+            <div class="error" id="errBirthday">Please select birthday</div>
+        </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="birthday">Birthday<span class="required">*</span></label>
-                    <input id="birthday" name="birthday" type="date" required />
-                </div>
-                <div class="form-group">
-                    <label for="occupation">Occupation<span class="required">*</span></label>
-                    <input id="occupation" name="occupation" required />
-                </div>
-            </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="you@email.com"/>
+            <div class="error" id="errEmail">Enter a valid email</div>
+        </div>
 
-            <div class="form-group">
-                <label for="email">Email<span class="required">*</span></label>
-                <input id="email" name="email" type="email" required />
-            </div>
+        <div class="form-group">
+            <label for="occupation">Occupation / Student</label>
+            <input id="occupation" type="text" placeholder="Student, Engineer, etc."/>
+            <div class="error" id="errOccupation">Please enter occupation</div>
+        </div>
 
-            <!-- Password -->
-            <h3>Security</h3>
-            <div class="form-group">
-                <label for="password">Password<span class="required">*</span></label>
-                <div class="password-wrapper">
-                    <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            autocomplete="new-password"
-                            required
-                    />
-                    <button type="button" id="togglePassword" class="password-toggle">
-                        Show
-                    </button>
-                </div>
-            </div>
+        <div class="form-group">
+            <label for="password">Create password</label>
+            <input id="password" type="password" placeholder="Min 6 characters"/>
+            <div class="error" id="errPassword">Password must be at least 6 characters</div>
+        </div>
 
-            <div class="form-group">
-                <label for="confirmPassword">Confirm Password<span class="required">*</span></label>
-                <input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type="password"
-                        required
-                />
-            </div>
+        <div class="form-group">
+            <label for="confirmPassword">Confirm password</label>
+            <input id="confirmPassword" type="password" placeholder="Retype password"/>
+            <div class="error" id="errConfirm">Passwords must match</div>
+        </div>
 
-            <!-- Address -->
-            <h3>Address</h3>
-            <div class="form-group">
-                <label for="street">Street</label>
-                <input id="street" name="street" />
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="city">City</label>
-                    <input id="city" name="city" />
-                </div>
-                <div class="form-group">
-                    <label for="state">State</label>
-                    <input id="state" name="state" />
-                </div>
-                <div class="form-group">
-                    <label for="zip">ZIP</label>
-                    <input id="zip" name="zip" />
-                </div>
-            </div>
-
-            <!-- Education -->
-            <h3>Education</h3>
-            <div class="form-group">
-                <label for="college">College</label>
-                <input id="college" name="college" />
-            </div>
-
-            <div class="form-group">
-                <label for="certificate">Certificate / Degree</label>
-                <input id="certificate" name="certificate" />
-            </div>
-
-            <div class="form-group">
-                <label for="gradDate">Graduation Date</label>
-                <input id="gradDate" name="gradDate" type="date" />
-            </div>
-
-            <div class="form-footer">
-                <button type="submit" class="btn-primary full-width">
-                    Create Account
-                </button>
-            </div>
-        </form>
-    </div>
-</main>
+        <button type="button" id="nextBtn" disabled>Next → Address</button>
+        <p id="message" class="hidden"></p>
+    </form>
+</div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const form = document.getElementById("registerForm");
-        const msgEl = document.getElementById("message");
-        const pwInput = document.getElementById("password");
-        const cpwInput = document.getElementById("confirmPassword");
-        const toggleBtn = document.getElementById("togglePassword");
+    const fields = ["firstName","lastName","birthday","email","occupation","password","confirmPassword"];
+    const nextBtn = document.getElementById("nextBtn");
+    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-        // --- Show / hide password utility ---
-        toggleBtn.addEventListener("click", () => {
-            const isPassword = pwInput.type === "password";
-            pwInput.type = isPassword ? "text" : "password";
-            toggleBtn.textContent = isPassword ? "Hide" : "Show";
-        });
+    function validate(){
+        let ok = true;
+        const v = id => document.getElementById(id).value.trim();
 
-        function showMessage(text, type) {
-            msgEl.textContent = text || "";
-            msgEl.style.color =
-                type === "error" ? "#fecaca" :
-                    type === "success" ? "#bbf7d0" :
-                        "#9ca3af";
-        }
+        const set = (id, cond) => {
+            document.getElementById(id).style.display = cond ? "none" : "block";
+            if(!cond) ok = false;
+        };
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            showMessage("", "info");
+        set("errFirstName", !!v("firstName"));
+        set("errLastName", !!v("lastName"));
+        set("errBirthday", !!v("birthday"));
+        set("errEmail", emailRx.test(v("email")));
+        set("errOccupation", !!v("occupation"));
+        set("errPassword", v("password").length >= 6);
+        set("errConfirm", v("password") === v("confirmPassword"));
 
-            const password = pwInput.value.trim();
-            const confirmPassword = cpwInput.value.trim();
+        nextBtn.disabled = !ok;
+        nextBtn.classList.toggle("enabled", ok);
+        return ok;
+    }
 
-            if (password !== confirmPassword) {
-                showMessage("Passwords do not match.", "error");
-                return;
-            }
+    fields.forEach(id => document.getElementById(id).addEventListener("input", validate));
 
-            const formData = new FormData(form);
-            const payload = Object.fromEntries(formData.entries());
-
-            // Remove confirmPassword before sending
-            delete payload.confirmPassword;
-
-            try {
-                const res = await fetch("/register", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                    showMessage(
-                        data.message || "Registration successful. Redirecting to login...",
-                        "success"
-                    );
-                    setTimeout(() => {
-                        window.location.href = "/login.html";
-                    }, 1000);
-                } else {
-                    showMessage(
-                        data.message || "Server error. Please try again.",
-                        "error"
-                    );
-                }
-            } catch (err) {
-                console.error("Register error:", err);
-                showMessage("Server error. Please try again.", "error");
-            }
-        });
+    nextBtn.addEventListener("click", () => {
+        if(!validate()) return;
+        const data = {};
+        fields.forEach(id => data[id] = document.getElementById(id).value.trim());
+        localStorage.setItem("regData", JSON.stringify(data));
+        window.location.href = "register_address.html";
     });
 </script>
 </body>
