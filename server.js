@@ -1,167 +1,153 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const multer = require("multer");
-const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
-const bcrypt = require("bcrypt");
+// ============================
+// server.js (FULL VERSION)
+// ============================
+
+const express = require('express');
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const session = require('express-session');
+const multer = require('multer');
+const { GridFsStorage } = require('multer-gridfs-storage');
+const Parser = require('rss-parser');
+const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const parser = new Parser();
 
-// ---------- Middleware ----------
+// ------------------ MIDDLEWARE ------------------
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static("public")); // Serve frontend files
+app.use(express.static("public")); // for HTML/CSS/JS
+app.use(
+    session({
+        secret: "pathway-secret",
+        resave: false,
+        saveUninitialized: true,
+    })
+);
 
-// ---------- File paths ----------
-const USERS_FILE = path.join(__dirname, "users.json");
-const COLLEGES_FILE = path.join(__dirname, "colleges.json");
+// ------------------ MONGODB CONNECTION ------------------
+const mongoURI = process.env.MONGO_URI || "your-mongodb-atlas-uri";
 
-// ---------- Ensure JSON files exist ----------
-if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, "[]");
-if (!fs.existsSync(COLLEGES_FILE)) {
-    fs.writeFileSync(
-        COLLEGES_FILE,
-        JSON.stringify([
-            "Harvard University",
-            "Stanford University",
-            "Massachusetts Institute of Technology",
-            "Princeton University",
-            "Yale University",
-            "Columbia University",
-            "University of California, Berkeley",
-            "University of Michigan",
-            "New York University",
-            "Georgia Institute of Technology",
-            "University of Florida",
-            "Boston University",
-            "University of Illinois Urbana-Champaign",
-            "Purdue University",
-            "University of Washington"
-        ], null, 2)
-    );
-}
+mongoose
+    .connect(mongoURI)
+    .then(() => console.log("✅ Connected to MongoDB Atlas"))
+    .catch((err) => console.log(err));
 
-// ---------- Helper: Generate unique 8-digit ID ----------
-function generateUniqueId(users) {
-    let id;
-    do {
-        id = Math.floor(10000000 + Math.random() * 90000000);
-    } while (users.find((u) => u.uniqueId === id));
-    return id;
-}
-
-// ---------- Upload Setup ----------
-const upload = multer({ dest: "uploads/" });
-
-// ---------- API: Register New User ----------
-app.post("/api/register", async (req, res) => {
-    const {
-        firstName, lastName, birthday, email, occupation,
-        street, city, state, zip, college, certificate, gradDate,
-        password, confirmPassword
-    } = req.body;
-
-    if (!firstName || !lastName || !birthday || !email || !occupation ||
-        !street || !city || !state || !zip || !college || !certificate ||
-        !gradDate || !password || !confirmPassword) {
-        return res.status(400).json({ message: "All fields are required" });
-    }
-
-    if (password !== confirmPassword) {
-        return res.status(400).json({ message: "Passwords do not match" });
-    }
-
-    const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) : [];
-    if (users.find((u) => u.email === email)) {
-        return res.status(400).json({ message: "Email already registered" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const uniqueId = generateUniqueId(users);
-
-    const newUser = {
-        id: users.length + 1,
-        uniqueId,
-        firstName,
-        lastName,
-        birthday,
-        email,
-        occupation,
-        password: hashedPassword,
-        address: { street, city, state, zip },
-        education: { college, certificate, gradDate },
-        registeredAt: new Date().toISOString()
-    };
-
-    users.push(newUser);
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-
-    console.log(`✅ Registered new user: ${firstName} ${lastName} (ID: ${uniqueId})`);
-    res.json({ message: "Registration successful!", user: { ...newUser, password: undefined } });
+// ------------------ USER MODEL ------------------
+const userSchema = new mongoose.Schema({
+    fullName: String,
+    email: String,
+    password: String,
 });
 
-// ---------- API: User Login ----------
-app.post("/api/login", async (req, res) => {
+const User = mongoose.model("User", userSchema);
+
+// ------------------ GRIDFS STORAGE ------------------
+let gfs;
+const conn = mongoose.connection;
+
+conn.once("open", () => {
+    const gridfsBucket = new mongoose.mongo.GridFSBucket(conn.db, {
+        bucketName: "uploads",
+    });
+    gfs = gridfsBucket;
+});
+
+// Storage engine
+const storage = new GridFsStorage({
+    url: mongoURI,
+    file: (req, file) => {
+        return {
+            filename: Date.now() + "-" + file.originalname,
+            bucketName: "uploads",
+        };
+    },
+});
+
+const upload = multer({ storage });
+
+// ------------------ REGISTER ------------------
+app.post("/register", async (req, res) => {
+    const { fullName, email, password } = req.body;
+
+    const userExists = await User.findOne({ email });
+    if (userExists)
+        return res.json({ success: false, message: "Email already exists" });
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+        fullName,
+        email,
+        password: hashed,
+    });
+
+    await newUser.save();
+    res.json({ success: true, message: "Account created" });
+});
+
+// ------------------ LOGIN ------------------
+app.post("/login", async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: "Email and password are required" });
 
-    const users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) : [];
-    const user = users.find((u) => u.email === email);
-    if (!user) return res.status(401).json({ message: "Invalid email or password" });
+    const found = await User.findOne({ email });
+    if (!found) return res.json({ success: false, message: "User not found" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid email or password" });
+    const correct = await bcrypt.compare(password, found.password);
+    if (!correct)
+        return res.json({ success: false, message: "Incorrect password" });
 
-    console.log(`🔐 ${user.firstName} ${user.lastName} logged in (ID: ${user.uniqueId})`);
+    req.session.user = found;
     res.json({
-        message: `Welcome back, ${user.firstName}!`,
-        user: {
-            id: user.id,
-            uniqueId: user.uniqueId,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            occupation: user.occupation,
-            birthday: user.birthday,
-            address: user.address,
-            education: user.education,
-            registeredAt: user.registeredAt
-        }
+        success: true,
+        message: "Logged in successfully",
+        fullName: found.fullName,
     });
 });
 
-// ---------- API: College Search ----------
-app.get("/api/colleges", (req, res) => {
-    const { search } = req.query;
-    if (!search || search.length < 3) return res.json([]);
-    const colleges = JSON.parse(fs.readFileSync(COLLEGES_FILE, "utf8"));
-    const results = colleges.filter(c => c.toLowerCase().includes(search.toLowerCase()));
-    res.json(results.slice(0, 10));
+// ------------------ UPLOAD RESUME ------------------
+app.post("/uploadResume", upload.single("resume"), (req, res) => {
+    if (!req.file)
+        return res.json({ success: false, message: "File upload failure" });
+
+    res.json({
+        success: true,
+        message: "Resume uploaded successfully",
+        file: req.file.filename,
+    });
 });
 
-// ---------- API: Resume Upload ----------
-app.post("/api/upload", upload.single("resume"), (req, res) => {
-    const file = req.file;
-    if (!file) return res.status(400).json({ message: "No file uploaded" });
+// ------------------ GET UPLOADED RESUMES ------------------
+app.get("/resumes", async (req, res) => {
+    gfs.find().toArray((err, files) => {
+        if (!files || files.length === 0)
+            return res.json({ success: false, message: "No files found" });
 
-    console.log("Uploaded resume:", file.originalname);
-    const extractedSkills = ["React", "SQL", "Node.js", "Problem Solving"];
-    res.json({ message: `Resume '${file.originalname}' analyzed successfully!`, skills: extractedSkills });
+        res.json({ success: true, files });
+    });
 });
 
-// ---------- API: Jobs ----------
-app.get("/api/jobs", (req, res) => {
-    const jobsPath = path.join(__dirname, "public", "jobs.json");
-    const jobs = fs.existsSync(jobsPath) ? JSON.parse(fs.readFileSync(jobsPath, "utf8")) : [];
-    res.json(jobs);
+// ------------------ YAHOO NEWS API ------------------
+app.get("/api/news", async (req, res) => {
+    try {
+        const feed = await parser.parseURL("https://www.yahoo.com/news/rss");
+        const articles = feed.items.slice(0, 10).map((item) => ({
+            title: item.title,
+            link: item.link,
+            pubDate: item.pubDate,
+        }));
+
+        res.json({ success: true, articles });
+    } catch (error) {
+        res.json({ success: false, message: "Error fetching news" });
+    }
 });
 
-// ---------- Default Route ----------
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
+// ------------------ START SERVER ------------------
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
 });
-
-// ---------- Start Server ----------
-app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));

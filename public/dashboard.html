@@ -1,80 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Dashboard | Pathway</title>
-    <link rel="stylesheet" href="style.css"/>
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 600px;
+            margin-bottom: 20px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .news-panel a {
+            display: block;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            text-decoration: none;
+            color: black;
+            font-size: 16px;
+        }
+
+        .news-panel a:hover {
+            color: #0078ff;
+        }
+    </style>
 </head>
 <body>
-<div class="shell">
-    <div class="banner">
-        <h1 id="welcome">Welcome!</h1>
-        <p id="loginMeta">Last login: —</p>
-    </div>
 
-    <div class="grid" style="margin-top:20px">
-        <div class="card">
-            <h3>👤 Personal</h3>
-            <p class="kv"><b>Name</b> <span id="name"></span></p>
-            <p class="kv"><b>Unique ID</b> <span id="uid"></span></p>
-            <p class="kv"><b>Email</b> <span id="email"></span></p>
-            <p class="kv"><b>Birthday</b> <span id="birthday"></span></p>
-            <p class="kv"><b>Occupation</b> <span id="occupation"></span></p>
-        </div>
+<h1>Welcome to Your Dashboard 👋</h1>
 
-        <div class="card">
-            <h3>🏠 Address</h3>
-            <p class="kv"><b>Street</b> <span id="street"></span></p>
-            <p class="kv"><b>City</b> <span id="city"></span></p>
-            <p class="kv"><b>State</b> <span id="state"></span></p>
-            <p class="kv"><b>ZIP</b> <span id="zip"></span></p>
-        </div>
+<!-- UPLOAD BOX -->
+<div class="box">
+    <h2>Upload Your Resume</h2>
 
-        <div class="card">
-            <h3>🎓 Education</h3>
-            <p class="kv"><b>College</b> <span id="college"></span></p>
-            <p class="kv"><b>Certificate</b> <span id="certificate"></span></p>
-            <p class="kv"><b>Grad date</b> <span id="gradDate"></span></p>
-        </div>
-    </div>
+    <form id="resumeForm" enctype="multipart/form-data">
+        <input type="file" name="resume" required>
+        <button type="submit">Upload</button>
+    </form>
 
-    <button class="logout" id="logoutBtn">Logout</button>
+    <p id="uploadResult"></p>
+</div>
+
+<!-- NEWS PANEL -->
+<div class="box news-panel">
+    <h2>Latest Yahoo News</h2>
+    <div id="news-list">Loading...</div>
 </div>
 
 <script>
-    const u = JSON.parse(localStorage.getItem("loggedInUser")||"null");
-    if(!u){ location.href="login.html"; }
+    // ---------------- UPLOAD RESUME ----------------
+    document.getElementById("resumeForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-    document.getElementById("welcome").textContent = `Welcome, ${u.firstName} ${u.lastName}! 🎉`;
-    document.getElementById("loginMeta").textContent = `Last login: ${u.lastLogin || "—"}`;
+        let formData = new FormData(e.target);
 
-    document.getElementById("name").textContent = `${u.firstName} ${u.lastName}`;
-    document.getElementById("uid").textContent = u.uniqueId;
-    document.getElementById("email").textContent = u.email;
-    document.getElementById("birthday").textContent = u.birthday || "—";
-    document.getElementById("occupation").textContent = u.occupation || "—";
+        let res = await fetch("/uploadResume", {
+            method: "POST",
+            body: formData
+        });
 
-    if(u.address){
-        document.getElementById("street").textContent = u.address.street || "—";
-        document.getElementById("city").textContent = u.address.city || "—";
-        document.getElementById("state").textContent = u.address.state || "—";
-        document.getElementById("zip").textContent = u.address.zip || "—";
-    } else {
-        ["street","city","state","zip"].forEach(id => document.getElementById(id).textContent = "—");
-    }
-
-    if(u.education){
-        document.getElementById("college").textContent = u.education.college || "—";
-        document.getElementById("certificate").textContent = u.education.certificate || "—";
-        document.getElementById("gradDate").textContent = u.education.gradDate || "—";
-    } else {
-        ["college","certificate","gradDate"].forEach(id => document.getElementById(id).textContent = "—");
-    }
-
-    document.getElementById("logoutBtn").addEventListener("click", ()=>{
-        localStorage.removeItem("loggedInUser");
-        location.href = "login.html";
+        let data = await res.json();
+        document.getElementById("uploadResult").innerText = data.message;
     });
+
+    // ---------------- LOAD NEWS ----------------
+    async function loadNews() {
+        let res = await fetch("/api/news");
+        let data = await res.json();
+
+        let container = document.getElementById("news-list");
+
+        if (!data.success) {
+            container.innerHTML = "Error loading news.";
+            return;
+        }
+
+        container.innerHTML = data.articles.map(a => `
+                <a href="${a.link}" target="_blank">
+                    ${a.title} <br>
+                    <small>${new Date(a.pubDate).toLocaleString()}</small>
+                </a>
+            `).join("");
+    }
+
+    loadNews();
 </script>
+
 </body>
 </html>
