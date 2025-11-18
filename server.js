@@ -711,4 +711,12 @@ app.get("/api/news", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
+
+    // 🔗 SHOW RENDER PUBLIC URL AUTOMATICALLY
+    if (process.env.RENDER_EXTERNAL_URL) {
+        console.log(`🌍 Live URL: ${process.env.RENDER_EXTERNAL_URL}`);
+    } else {
+        console.log(`🌍 Local URL: http://localhost:${PORT}`);
+    }
 });
+
