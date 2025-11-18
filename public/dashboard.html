@@ -1,47 +1,236 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard</title>
+    <title>Pathway Dashboard</title>
     <style>
-        body { font-family: Arial; background: #f0f2f5; padding: 20px; }
-        .box {
-            background: white; padding: 20px; border-radius: 12px;
-            width: 600px; margin-bottom: 20px;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f0f2f5;
+            display: flex;
+        }
+        #sidebar {
+            width: 240px;
+            height: 100vh;
+            background: #ffffff;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            padding-top: 25px;
+            position: fixed;
+        }
+        #sidebar h2 {
+            text-align: center;
+            margin-top: 0;
+        }
+        .side-item {
+            padding: 15px 25px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #333;
+        }
+        .side-item:hover {
+            background: #f0f0f0;
+        }
+        .side-item.active {
+            background: #0078ff;
+            color: white;
+        }
+        #content {
+            margin-left: 260px;
+            padding: 25px;
+            width: 100%;
+        }
+        .section {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        body.dark {
+            background: #181818;
+            color: white;
+        }
+        body.dark #sidebar {
+            background: #202020;
+            color: white;
+        }
+        body.dark .section {
+            background: #242424;
+            color: white;
+        }
+        .dark-toggle {
+            background: #0078ff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        #jobList, #interviewList, #suggestionsList {
+            margin-top: 15px;
+        }
+        .job-item, .interview-item, .suggestion-item {
+            background: #f3f3f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        body.dark .job-item,
+        body.dark .interview-item,
+        body.dark .suggestion-item {
+            background: #333;
+        }
+        #profilePic {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #0078ff;
+        }
+        #resumeViewer {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+        button {
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-<h1>Dashboard</h1>
-
-<div id="resumeSection" class="box" style="display:none;">
-    <h2>Upload Resume</h2>
-    <form id="resumeForm">
-        <input type="file" name="resume" required />
-        <button type="submit">Upload</button>
-    </form>
-    <p id="uploadResult"></p>
+<div id="sidebar">
+    <h2>Pathway</h2>
+    <div class="side-item active" onclick="showSection('personal', this)">👤 Personal Info</div>
+    <div class="side-item" onclick="showSection('resume', this)">📄 Resume Upload</div>
+    <div class="side-item" onclick="showSection('ai', this)">🤖 AI Resume Formatter</div>
+    <div class="side-item" onclick="showSection('tracker', this)">📌 Job Tracker</div>
+    <div class="side-item" onclick="showSection('settings', this)">⚙️ Settings</div>
+    <br><br>
+    <div style="text-align:center;">
+        <button class="dark-toggle" onclick="toggleDark()">🌙 Dark Mode</button>
+    </div>
 </div>
 
-<div class="box">
-    <h2>Latest Yahoo News</h2>
-    <div id="news-list">Loading...</div>
+<div id="content">
+
+    <!-- PERSONAL INFO -->
+    <div id="personal" class="section" style="display:block;">
+        <h2>Your Personal Information</h2>
+        <img id="profilePic" src="" alt="Profile Picture" onerror="this.src='https://via.placeholder.com/80'">
+        <div id="personalData" style="margin-top:15px;"></div>
+    </div>
+
+    <!-- RESUME UPLOAD + VIEWER -->
+    <div id="resume" class="section">
+        <h2>Upload Your Resume</h2>
+        <form id="resumeForm">
+            <input type="file" name="resume" required><br><br>
+            <button type="submit">Upload</button>
+        </form>
+        <p id="uploadResult"></p>
+
+        <h3>Your Uploaded Resumes</h3>
+        <div id="resumeList"></div>
+        <iframe id="resumeViewer"></iframe>
+    </div>
+
+    <!-- AI RESUME FORMATTER -->
+    <div id="ai" class="section">
+        <h2>AI Resume Formatter</h2>
+        <textarea id="resumeText" style="width:100%;height:200px;"></textarea><br><br>
+        <button onclick="formatResume()">Format Resume</button>
+        <h3>Formatted Output:</h3>
+        <div id="aiResult" style="white-space:pre-wrap;"></div>
+    </div>
+
+    <!-- JOB TRACKER + INTERVIEW CALENDAR + SUGGESTIONS -->
+    <div id="tracker" class="section">
+        <h2>Job Application Tracker</h2>
+
+        <input id="jobTitle" placeholder="Job Title" style="width:48%; padding:8px;">
+        <input id="jobCompany" placeholder="Company" style="width:48%; padding:8px;"><br><br>
+        <input id="jobStatus" placeholder="Status: Applied, Interview, Offer" style="width:48%; padding:8px;">
+        <input id="jobDate" type="date" style="width:48%; padding:8px;"><br><br>
+        <button onclick="addJob()">Add Job</button>
+
+        <h3>Saved Jobs</h3>
+        <div id="jobList"></div>
+
+        <hr>
+
+        <h2>Interview Scheduler</h2>
+        <input id="intCompany" placeholder="Company" style="width:48%; padding:8px;">
+        <input id="intRole" placeholder="Role" style="width:48%; padding:8px;"><br><br>
+        <input id="intDate" type="date" style="width:48%; padding:8px;">
+        <input id="intTime" type="time" style="width:48%; padding:8px;"><br><br>
+        <textarea id="intNotes" placeholder="Notes" style="width:100%;height:80px;"></textarea><br><br>
+        <button onclick="addInterview()">Add Interview</button>
+
+        <h3>Upcoming Interviews</h3>
+        <div id="interviewList"></div>
+
+        <hr>
+
+        <h2>AI Job Suggestions</h2>
+        <div id="suggestionsList"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settings" class="section">
+        <h2>Settings</h2>
+
+        <h3>Update Profile Picture</h3>
+        <form id="avatarForm">
+            <input type="file" name="avatar" required><br><br>
+            <button type="submit">Upload Picture</button>
+        </form>
+        <p id="avatarResult"></p>
+
+        <hr>
+        <button onclick="logout()">Logout</button>
+    </div>
+
 </div>
 
 <script>
-    // --- CHECK LOGIN BEFORE SHOWING ANYTHING ---
-    fetch("/check-session")
+    function showSection(section, btn) {
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+        document.querySelectorAll('.side-item').forEach(b => b.classList.remove('active'));
+        document.getElementById(section).style.display = 'block';
+        btn.classList.add('active');
+    }
+
+    function toggleDark() {
+        document.body.classList.toggle('dark');
+    }
+
+    // ---- SESSION + PERSONAL INFO ----
+    fetch('/check-session')
         .then(res => res.json())
         .then(data => {
             if (!data.loggedIn) {
                 window.location.href = "/login.html";
             } else {
-                document.getElementById("resumeSection").style.display = "block";
+                document.getElementById("personalData").innerHTML = `
+                <p><b>Name:</b> ${data.user.fullName}</p>
+                <p><b>Email:</b> ${data.user.email}</p>
+            `;
+                if (data.user.profilePicPath) {
+                    document.getElementById("profilePic").src = data.user.profilePicPath;
+                } else {
+                    document.getElementById("profilePic").src = "https://via.placeholder.com/80";
+                }
+                loadJobs();
+                loadInterviews();
+                loadSuggestions();
+                loadResumes();
             }
         });
 
-    // --- RESUME UPLOAD ---
+    // ---- RESUME UPLOAD + LIST + VIEWER ----
     document.getElementById("resumeForm").onsubmit = async (e) => {
         e.preventDefault();
         let formData = new FormData(e.target);
@@ -53,28 +242,205 @@
 
         let out = await res.json();
         document.getElementById("uploadResult").innerText = out.message;
+        if (out.success) loadResumes();
     };
 
-    // --- LOAD NEWS ---
-    async function loadNews() {
-        const res = await fetch("/api/news");
+    async function loadResumes() {
+        const res = await fetch("/resumes");
         const data = await res.json();
-
-        const container = document.getElementById("news-list");
+        const list = document.getElementById("resumeList");
+        list.innerHTML = "";
 
         if (!data.success) {
-            container.innerHTML = "Could not load news.";
+            list.innerText = "No resumes uploaded yet.";
             return;
         }
 
-        container.innerHTML = data.articles.map(a => `
-        <p>
-            <a href="${a.link}" target="_blank">${a.title}</a><br>
-            <small>${new Date(a.pubDate).toLocaleString()}</small>
-        </p>
-    `).join("");
+        data.files.forEach(file => {
+            const div = document.createElement("div");
+            div.className = "job-item";
+            div.innerHTML = `
+            <b>${file.filename}</b><br>
+            Uploaded: ${new Date(file.uploadDate).toLocaleString()}<br>
+            <button onclick="viewResume('${file._id}')">View</button>
+        `;
+            list.appendChild(div);
+        });
     }
-    loadNews();
+
+    function viewResume(id) {
+        document.getElementById("resumeViewer").src = `/resumes/file/${id}`;
+    }
+
+    // ---- AI RESUME FORMATTER ----
+    async function formatResume() {
+        const text = document.getElementById("resumeText").value;
+        if (!text.trim()) {
+            alert("Paste your resume first!");
+            return;
+        }
+        const res = await fetch("/api/format-resume", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById("aiResult").innerText = data.formattedText;
+        } else {
+            document.getElementById("aiResult").innerText = data.message || "Error formatting resume.";
+        }
+    }
+
+    // ---- JOB TRACKER ----
+    async function addJob() {
+        let title = document.getElementById("jobTitle").value;
+        let company = document.getElementById("jobCompany").value;
+        let status = document.getElementById("jobStatus").value;
+        let date = document.getElementById("jobDate").value;
+
+        if (!title || !company || !status) {
+            alert("Fill all job fields");
+            return;
+        }
+
+        const res = await fetch("/api/jobs", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ title, company, status, date })
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById("jobTitle").value = "";
+            document.getElementById("jobCompany").value = "";
+            document.getElementById("jobStatus").value = "";
+            document.getElementById("jobDate").value = "";
+            loadJobs();
+        }
+    }
+
+    async function loadJobs() {
+        const res = await fetch("/api/jobs");
+        const data = await res.json();
+        const list = document.getElementById("jobList");
+        list.innerHTML = "";
+
+        if (!data.success || !data.jobs.length) {
+            list.innerText = "No jobs added yet.";
+            return;
+        }
+
+        data.jobs.forEach(job => {
+            const div = document.createElement("div");
+            div.className = "job-item";
+            div.innerHTML = `
+            <b>${job.title}</b> at ${job.company}<br>
+            Status: ${job.status}<br>
+            Date: ${job.date || "N/A"}
+        `;
+            list.appendChild(div);
+        });
+    }
+
+    // ---- INTERVIEW SCHEDULER ----
+    async function addInterview() {
+        let company = document.getElementById("intCompany").value;
+        let role = document.getElementById("intRole").value;
+        let date = document.getElementById("intDate").value;
+        let time = document.getElementById("intTime").value;
+        let notes = document.getElementById("intNotes").value;
+
+        if (!company || !role || !date || !time) {
+            alert("Fill all interview fields");
+            return;
+        }
+
+        const res = await fetch("/api/interviews", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ company, role, date, time, notes })
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById("intCompany").value = "";
+            document.getElementById("intRole").value = "";
+            document.getElementById("intDate").value = "";
+            document.getElementById("intTime").value = "";
+            document.getElementById("intNotes").value = "";
+            loadInterviews();
+        }
+    }
+
+    async function loadInterviews() {
+        const res = await fetch("/api/interviews");
+        const data = await res.json();
+        const list = document.getElementById("interviewList");
+        list.innerHTML = "";
+
+        if (!data.success || !data.interviews.length) {
+            list.innerText = "No interviews scheduled yet.";
+            return;
+        }
+
+        data.interviews.forEach(int => {
+            const div = document.createElement("div");
+            div.className = "interview-item";
+            div.innerHTML = `
+            <b>${int.company}</b> - ${int.role}<br>
+            ${int.date} at ${int.time}<br>
+            Notes: ${int.notes || "None"}
+        `;
+            list.appendChild(div);
+        });
+    }
+
+    // ---- JOB SUGGESTIONS ----
+    async function loadSuggestions() {
+        const res = await fetch("/api/job-suggestions");
+        const data = await res.json();
+        const list = document.getElementById("suggestionsList");
+        list.innerHTML = "";
+
+        if (!data.success) {
+            list.innerText = "Error getting suggestions.";
+            return;
+        }
+
+        data.suggestions.forEach(s => {
+            const div = document.createElement("div");
+            div.className = "suggestion-item";
+            div.innerHTML = `
+            <b>${s.title}</b><br>
+            Company: ${s.company}<br>
+            Location: ${s.location}
+        `;
+            list.appendChild(div);
+        });
+    }
+
+    // ---- PROFILE PICTURE ----
+    document.getElementById("avatarForm").onsubmit = async (e) => {
+        e.preventDefault();
+        let formData = new FormData(e.target);
+
+        const res = await fetch("/profile-picture", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        document.getElementById("avatarResult").innerText = data.message;
+
+        if (data.success && data.path) {
+            document.getElementById("profilePic").src = data.path;
+        }
+    };
+
+    // ---- LOGOUT ----
+    async function logout() {
+        await fetch('/logout');
+        window.location.href = "/login.html";
+    }
 </script>
 
 </body>
