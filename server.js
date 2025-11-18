@@ -83,6 +83,14 @@ function requireLogin(req, res, next) {
     next();
 }
 
+// Small helper to read fields whether they are camelCase or snake_case
+function getField(obj, ...names) {
+    for (const n of names) {
+        if (obj && obj[n] != null) return obj[n];
+    }
+    return null;
+}
+
 // ---------- ROOT ----------
 app.get("/", (req, res) => {
     res.redirect("/login.html");
@@ -155,7 +163,7 @@ app.post("/api/register", async (req, res) => {
                     gradDate,
                 },
             ])
-            .select("id, fullName, email")
+            .select("*")
             .single();
 
         if (insertError || !inserted) {
@@ -170,7 +178,7 @@ app.post("/api/register", async (req, res) => {
             message: "Registration successful",
             user: {
                 id: inserted.id,
-                fullName: inserted.fullName,
+                fullName: inserted.fullName || fullName,
                 email: inserted.email,
             },
         });
@@ -218,29 +226,51 @@ app.post("/api/login", async (req, res) => {
                 .json({ success: false, message: "Incorrect password" });
         }
 
+        // Resolve profile fields (camelCase or snake_case)
+        const firstName = getField(user, "firstName", "firstname", "first_name") || "";
+        const lastName = getField(user, "lastName", "lastname", "last_name") || "";
         const fullName =
-            user.fullName ||
-            `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-            "";
+            getField(user, "fullName", "fullname") ||
+            `${firstName} ${lastName}`.trim() ||
+            email;
 
+        const birthday =
+            getField(user, "birthday", "birthdate", "dob") || null;
+        const occupation = getField(user, "occupation") || null;
+        const street = getField(user, "street") || null;
+        const city = getField(user, "city") || null;
+        const state = getField(user, "state") || null;
+        const zip = getField(user, "zip", "postal_code") || null;
+        const college = getField(user, "college") || null;
+        const certificate = getField(user, "certificate", "degree") || null;
+        const gradDate =
+            getField(user, "gradDate", "graduationDate", "graduation_date") ||
+            null;
+        const profilePicPath = getField(user, "profilePicPath", "profile_pic") || null;
+
+        // Save a rich object in the session
         req.session.user = {
             id: user.id,
             email: user.email,
+            firstName,
+            lastName,
             fullName,
-            profilePicPath: user.profilePicPath || null,
+            birthday,
+            occupation,
+            street,
+            city,
+            state,
+            zip,
+            college,
+            certificate,
+            gradDate,
+            profilePicPath,
         };
 
         return res.json({
             success: true,
             message: "Login successful",
-            user: {
-                id: user.id,
-                fullName,
-                email: user.email,
-                occupation: user.occupation,
-                college: user.college,
-                gradDate: user.gradDate,
-            },
+            user: req.session.user,
         });
     } catch (err) {
         console.error("Login error:", err);
@@ -260,41 +290,81 @@ app.get("/check-session", async (req, res) => {
         const { data, error } = await supabase
             .from("users")
             .select("*")
-            .eq("email", email);
+            .eq("email", email)
+            .single();
 
-        if (error) {
-            console.error("Supabase profile fetch error:", error);
-            return res.json({ loggedIn: true, user: req.session.user }); // fallback
-        }
-
-        if (!data || data.length === 0) {
+        if (error || !data) {
+            // fallback to whatever is in the session
+            console.error("Supabase profile fetch error (fallback to session):", error);
             return res.json({ loggedIn: true, user: req.session.user });
         }
 
-        const u = data[0];
+        const u = data;
+
+        const firstName =
+            getField(u, "firstName", "firstname", "first_name") ||
+            req.session.user.firstName ||
+            "";
+        const lastName =
+            getField(u, "lastName", "lastname", "last_name") ||
+            req.session.user.lastName ||
+            "";
         const fullName =
-            u.fullName ||
-            `${u.firstName || ""} ${u.lastName || ""}`.trim() ||
+            getField(u, "fullName", "fullname") ||
+            `${firstName} ${lastName}`.trim() ||
             req.session.user.fullName ||
             "";
 
+        const birthday =
+            getField(u, "birthday", "birthdate", "dob") ||
+            req.session.user.birthday ||
+            null;
+        const occupation =
+            getField(u, "occupation") || req.session.user.occupation || null;
+        const street = getField(u, "street") || req.session.user.street || null;
+        const city = getField(u, "city") || req.session.user.city || null;
+        const state = getField(u, "state") || req.session.user.state || null;
+        const zip =
+            getField(u, "zip", "postal_code") || req.session.user.zip || null;
+        const college =
+            getField(u, "college") || req.session.user.college || null;
+        const certificate =
+            getField(u, "certificate", "degree") ||
+            req.session.user.certificate ||
+            null;
+        const gradDate =
+            getField(u, "gradDate", "graduationDate", "graduation_date") ||
+            req.session.user.gradDate ||
+            null;
+        const profilePicPath =
+            getField(u, "profilePicPath", "profile_pic") ||
+            req.session.user.profilePicPath ||
+            null;
+
+        const userObj = {
+            id: u.id,
+            email: u.email,
+            firstName,
+            lastName,
+            fullName,
+            birthday,
+            occupation,
+            street,
+            city,
+            state,
+            zip,
+            college,
+            certificate,
+            gradDate,
+            profilePicPath,
+        };
+
+        // keep session in sync
+        req.session.user = userObj;
+
         return res.json({
             loggedIn: true,
-            user: {
-                id: u.id,
-                fullName,
-                email: u.email,
-                occupation: u.occupation,
-                birthday: u.birthday,
-                street: u.street,
-                city: u.city,
-                state: u.state,
-                zip: u.zip,
-                college: u.college,
-                certificate: u.certificate,
-                gradDate: u.gradDate,
-                profilePicPath: u.profilePicPath || req.session.user.profilePicPath,
-            },
+            user: userObj,
         });
     } catch (err) {
         console.error("check-session error:", err);
