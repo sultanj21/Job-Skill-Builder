@@ -1,50 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Jobs – Pathway</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="utf-8">
+    <title>Pathway — Job Matches</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="page">
-<header class="top-bar">
-    <div class="logo">Pathway</div>
-    <nav>
-        <a href="dashboard.html">Dashboard</a>
-        <a href="jobs.html">Jobs</a>
-        <button class="btn-outline" id="logoutBtn">Logout</button>
-    </nav>
-</header>
+<body>
+<div class="shell">
+    <div class="banner">
+        <div>
+            <h1>Job Matches</h1>
+            <p>Paste your resume keywords and Pathway will surface opportunities aligned with your skills.</p>
+        </div>
+        <div class="header-links">
+            <a href="/dashboard.html">Home</a>
+            <a href="/index.html">Upload Resume</a>
+            <a href="/resume.html">Resume Reformatter</a>
+            <a href="/jobs.html">Job Recommendations</a>
+        </div>
+    </div>
 
-<main class="jobs-layout">
-    <section class="card">
-        <h2>Job Board (placeholder)</h2>
-        <p class="muted">
-            Here you can later integrate real job feeds, saved jobs, and filters.
-        </p>
-        <ul class="job-list">
-            <li>
-                <h3>Junior Software Developer</h3>
-                <p class="muted small">
-                    Example Company · Atlanta, GA · Full-time
-                </p>
-            </li>
-            <li>
-                <h3>IT Support Specialist</h3>
-                <p class="muted small">
-                    Example Tech · Remote · Full-time
-                </p>
-            </li>
-        </ul>
-    </section>
-</main>
+    <div id="pendingApplicationBanner" class="pending-banner hidden"></div>
+
+    <div class="jobs-layout">
+        <div class="card jobs-filter">
+            <h2>Paste Resume Highlights</h2>
+            <p>We look for overlapping keywords between your resume and the job descriptions.</p>
+            <textarea id="resumeKeywordsInput" rows="10" placeholder="Paste your resume summary, skills, or bullet points here..."></textarea>
+            <button id="filterJobsBtn">Find Matching Jobs</button>
+            <p id="jobStatus" class="muted"></p>
+        </div>
+
+        <div class="card jobs-results">
+            <h2>Opportunities</h2>
+            <div id="jobsList" class="jobs-grid"></div>
+        </div>
+    </div>
+</div>
 
 <script src="app.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        document.getElementById("logoutBtn").addEventListener("click", () => {
-            AppUtils.handleLogout();
-        });
-    });
-</script>
 </body>
 </html>

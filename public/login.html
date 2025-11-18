@@ -1,84 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Login – Pathway</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login | Pathway</title>
+    <link rel="stylesheet" href="style.css"/>
+    <style>
+        .toggle-pass {
+            position: absolute;
+            right: 14px;
+            top: 40px;
+            cursor: pointer;
+            color: #6b7280;
+            transition: 0.2s ease;
+        }
+        .toggle-pass:hover { color: #333; }
+    </style>
 </head>
-<body class="page auth-page">
-<header class="top-bar">
-    <div class="logo">Pathway</div>
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="register.html" class="btn-primary">Register</a>
-    </nav>
-</header>
+<body>
+<div class="container">
+    <h1>Welcome back 👋</h1>
+    <p>Log in to view your dashboard</p>
 
-<main class="auth-container">
-    <div class="auth-card">
-        <h2>Welcome back</h2>
-        <p class="muted">Log in to access your dashboard and tools.</p>
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="email">Email<span class="required">*</span></label>
-                <input id="email" name="email" type="email" required />
-            </div>
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="you@email.com" required/>
+        </div>
 
-            <div class="form-group">
-                <label for="password">Password<span class="required">*</span></label>
-                <div class="password-wrapper">
-                    <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            autocomplete="current-password"
-                            required
-                    />
-                    <button type="button" id="togglePassword" class="password-toggle">
-                        Show
-                    </button>
-                </div>
-            </div>
+        <div class="form-group" style="position:relative">
+            <label for="password">Password</label>
+            <input id="password" type="password" placeholder="Your password" required/>
+            <span class="toggle-pass" id="toggleLoginPass">👁️</span>
+        </div>
 
-            <button type="submit" class="btn-primary full-width">Log In</button>
-        </form>
-        <p class="muted small">
-            Don't have an account? <a href="register.html">Create one</a>.
-        </p>
-    </div>
-</main>
+        <button type="submit">Login</button>
+        <p id="message" class="hidden"></p>
+    </form>
 
-<script src="app.js"></script>
+    <p>Don’t have an account? <a href="register_personal.html">Register here</a></p>
+</div>
+
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        AppUtils.setupShowPassword("#togglePassword", "#password");
+    document.getElementById("toggleLoginPass").addEventListener("click",()=>{
+        const p=document.getElementById("password");
+        const show=p.type==="password";
+        p.type=show?"text":"password";
+        document.getElementById("toggleLoginPass").textContent=show?"🔓":"🔒";
+    });
 
-        const form = document.getElementById("loginForm");
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
+    document.getElementById("loginForm").addEventListener("submit",async(e)=>{
+        e.preventDefault();
+        const email=document.getElementById("email").value.trim();
+        const password=document.getElementById("password").value.trim();
+        const message=document.getElementById("message");
+        message.classList.remove("hidden");
+        message.textContent="⏳ Logging in...";
 
-            const formData = new FormData(form);
-            const payload = Object.fromEntries(formData.entries());
-
-            try {
-                const res = await fetch("/login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    AppUtils.showBanner("Login successful. Redirecting…", "success");
-                    window.location.href = "/dashboard";
-                } else {
-                    AppUtils.showBanner(data.message || "Login failed.", "error");
-                }
-            } catch (err) {
-                console.error("Login error:", err);
-                AppUtils.showBanner("Server error. Try again.", "error");
-            }
-        });
+        try{
+            const res=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+            const data=await res.json();
+            if(!res.ok){message.textContent=`❌ ${data.message||"Invalid email or password"}`;return;}
+            const userData={...data.user,lastLogin:new Date().toLocaleString()};
+            localStorage.setItem("loggedInUser",JSON.stringify(userData));
+            message.textContent="✅ Login successful! Redirecting...";
+            setTimeout(()=>location.href="dashboard.html",800);
+        }catch(e){
+            message.textContent="⚠️ Server error. Please try again.";
+        }
     });
 </script>
 </body>

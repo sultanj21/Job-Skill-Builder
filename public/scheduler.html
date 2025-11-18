@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Scheduler | Job Skill Builder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        .shell {
+            max-width: 1000px;
+            margin: 24px auto;
+            padding: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .month-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            border: none;
+            background: white;
+            border-radius: 999px;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+        }
+
+        .calendar {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        .weekday-row {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .weekday {
+            text-align: center;
+            padding: 4px 0;
+        }
+
+        .day-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .day-cell {
+            min-height: 90px;
+            border-radius: 12px;
+            padding: 6px;
+            background: #f9fafb;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-cell.other-month {
+            opacity: 0.4;
+        }
+
+        .day-number {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .event-pill {
+            background: #e5e7eb;
+            border-radius: 999px;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            margin-bottom: 2px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event-pill:hover {
+            background: #d1d5db;
+        }
+
+        .fab {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 999px;
+            border: none;
+            background: #2563eb;
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+        }
+
+        .fab:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.35);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .close-btn {
+            border: none;
+            background: transparent;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .field input[type="text"],
+        .field input[type="email"],
+        .field select,
+        .field textarea {
+            width: 100%;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 0.9rem;
+        }
+
+        .field textarea {
+            resize: vertical;
+            min-height: 60px;
+            max-height: 180px;
+        }
+
+        .notif-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .notif-option {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.9rem;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn {
+            border-radius: 999px;
+            padding: 6px 14px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .error {
+            color: #b91c1c;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        /* Event details modal */
+        .event-notes {
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            color: #4b5563;
+        }
+
+        .time-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .time-group select {
+            padding: 4px 8px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 700px) {
+            .day-cell {
+                min-height: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <div class="header">
+        <h1 id="monthLabel">Loading...</h1>
+        <div class="month-nav">
+            <button id="prevMonth" class="nav-btn" aria-label="Previous month">&#8592;</button>
+            <button id="nextMonth" class="nav-btn" aria-label="Next month">&#8594;</button>
+        </div>
+    </div>
+
+    <div class="calendar">
+        <div class="weekday-row">
+            <div class="weekday">Sun</div>
+            <div class="weekday">Mon</div>
+            <div class="weekday">Tue</div>
+            <div class="weekday">Wed</div>
+            <div class="weekday">Thu</div>
+            <div class="weekday">Fri</div>
+            <div class="weekday">Sat</div>
+        </div>
+        <div id="dayGrid" class="day-grid"></div>
+    </div>
+</div>
+
+<button class="fab" id="addEventFab" title="Add event">+</button>
+
+<!-- Add Event Modal -->
+<div class="modal-backdrop" id="addEventModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Add Event</h2>
+            <button class="close-btn" data-close-add>&times;</button>
+        </div>
+        <div class="error" id="addEventError" style="display:none;"></div>
+        <div class="field">
+            <label for="eventName">Event name (max 300 characters)*</label>
+            <input type="text" id="eventName" maxlength="300" required />
+        </div>
+
+        <div class="field">
+            <label for="eventDate">Date (MM/DD/YYYY)*</label>
+            <input type="text" id="eventDate" placeholder="11/17/2025" required />
+        </div>
+
+        <div class="field">
+            <label>Time*</label>
+            <div class="time-group">
+                <select id="eventHour" required></select>
+                <span>:</span>
+                <select id="eventMinute" required></select>
+            </div>
+        </div>
+
+        <div class="field">
+            <label>Notification* (email 1 day & 1 hour before)</label>
+            <div class="notif-group">
+                <label class="notif-option">
+                    <input type="radio" name="notif" value="yes" /> Yes
+                </label>
+                <label class="notif-option">
+                    <input type="radio" name="notif" value="no" /> No
+                </label>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="eventNotes">Additional notes (optional, max 2000 characters)</label>
+            <textarea id="eventNotes" maxlength="2000"></textarea>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-secondary" data-close-add>Cancel</button>
+            <button class="btn btn-primary" id="saveEventBtn">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Event Detail Modal -->
+<div class="modal-backdrop" id="eventDetailModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="detailTitle">Event</h2>
+            <button class="close-btn" data-close-detail>&times;</button>
+        </div>
+        <p id="detailWhen" style="font-size:0.9rem;color:#6b7280;margin-top:0;"></p>
+        <div class="event-notes" id="detailNotes"></div>
+        <div class="actions" style="margin-top:16px;">
+            <button class="btn btn-secondary" data-close-detail>Close</button>
+            <button class="btn btn-primary" id="deleteEventBtn">Delete</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const monthLabel = document.getElementById("monthLabel");
+    const dayGrid = document.getElementById("dayGrid");
+    const prevMonthBtn = document.getElementById("prevMonth");
+    const nextMonthBtn = document.getElementById("nextMonth");
+    const addEventFab = document.getElementById("addEventFab");
+
+    const addEventModal = document.getElementById("addEventModal");
+    const eventDetailModal = document.getElementById("eventDetailModal");
+
+    const eventNameInput = document.getElementById("eventName");
+    const eventDateInput = document.getElementById("eventDate");
+    const eventHourSelect = document.getElementById("eventHour");
+    const eventMinuteSelect = document.getElementById("eventMinute");
+    const eventNotesInput = document.getElementById("eventNotes");
+    const saveEventBtn = document.getElementById("saveEventBtn");
+    const addEventError = document.getElementById("addEventError");
+
+    const detailTitle = document.getElementById("detailTitle");
+    const detailWhen = document.getElementById("detailWhen");
+    const detailNotes = document.getElementById("detailNotes");
+
+    let currentYear, currentMonthIndex;
+    let eventsCache = [];
+
+    let selectedEvent = null;
+    const deleteEventBtn = document.getElementById("deleteEventBtn");
+
+    /** Populate hour and minute dropdowns (00–23, 00–59) */
+    function buildTimeSelectors() {
+        eventHourSelect.innerHTML = "";
+        eventMinuteSelect.innerHTML = "";
+
+        for (let h = 0; h < 24; h++) {
+            const opt = document.createElement("option");
+            opt.value = String(h).padStart(2, "0");
+            opt.textContent = String(h).padStart(2, "0");
+            eventHourSelect.appendChild(opt);
+        }
+
+        for (let m = 0; m < 60; m++) {
+            const opt = document.createElement("option");
+            opt.value = String(m).padStart(2, "0");
+            opt.textContent = String(m).padStart(2, "0");
+            eventMinuteSelect.appendChild(opt);
+        }
+
+        const now = new Date();
+        eventHourSelect.value = String(now.getHours()).padStart(2, "0");
+        eventMinuteSelect.value = String(now.getMinutes()).padStart(2, "0");
+    }
+
+    function openAddEventModal(dateString) {
+        addEventError.style.display = "none";
+        addEventError.textContent = "";
+
+        if (dateString) {
+            eventDateInput.value = dateString;
+        } else {
+            eventDateInput.value = "";
+        }
+
+        eventNameInput.value = "";
+        eventNotesInput.value = "";
+        // keep user email prefilled once user typed it once
+
+        const notifRadios = document.querySelectorAll('input[name="notif"]');
+        notifRadios.forEach((r) => (r.checked = false));
+
+        addEventModal.style.display = "flex";
+    }
+
+    function closeAddEventModal() {
+        addEventModal.style.display = "none";
+    }
+
+    function openEventDetailModal(event) {
+        selectedEvent = event;
+
+        detailTitle.textContent = event.name;
+
+        const whenStr = new Date(event.startTime).toLocaleString("en-US", {
+            dateStyle: "full",
+            timeStyle: "short",
+        });
+        detailWhen.textContent = whenStr;
+
+        detailNotes.textContent = event.notes || "(No notes)";
+        eventDetailModal.style.display = "flex";
+    }
+
+
+    function closeEventDetailModal() {
+        eventDetailModal.style.display = "none";
+    }
+
+    function renderCalendar() {
+        const baseDate = new Date(currentYear, currentMonthIndex, 1);
+        const monthName = baseDate.toLocaleString("en-US", {
+            month: "long",
+            year: "numeric",
+        });
+        monthLabel.textContent = monthName;
+
+        dayGrid.innerHTML = "";
+
+        const firstDayOfWeek = new Date(currentYear, currentMonthIndex, 1).getDay();
+        const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
+        const daysInPrevMonth = new Date(currentYear, currentMonthIndex, 0).getDate();
+
+        // Calendar grid: 42 cells (6 weeks)
+        const totalCells = 42;
+        const cellsBefore = firstDayOfWeek;
+
+        for (let i = 0; i < totalCells; i++) {
+            const cell = document.createElement("div");
+            cell.classList.add("day-cell");
+
+            let dayNumber;
+            let cellDate;
+            let isOtherMonth = false;
+
+            if (i < cellsBefore) {
+                // previous month
+                dayNumber = daysInPrevMonth - (cellsBefore - 1 - i);
+                const dateObj = new Date(
+                    currentYear,
+                    currentMonthIndex - 1,
+                    dayNumber
+                );
+                cellDate = dateObj;
+                isOtherMonth = true;
+            } else if (i >= cellsBefore + daysInMonth) {
+                // next month
+                dayNumber = i - (cellsBefore + daysInMonth) + 1;
+                const dateObj = new Date(
+                    currentYear,
+                    currentMonthIndex + 1,
+                    dayNumber
+                );
+                cellDate = dateObj;
+                isOtherMonth = true;
+            } else {
+                // current month
+                dayNumber = i - cellsBefore + 1;
+                const dateObj = new Date(currentYear, currentMonthIndex, dayNumber);
+                cellDate = dateObj;
+            }
+
+            if (isOtherMonth) {
+                cell.classList.add("other-month");
+            }
+
+            const header = document.createElement("div");
+            header.classList.add("day-number");
+
+            const dateLabel = `${cellDate.getMonth() + 1}/${cellDate.getDate()}/${cellDate.getFullYear()}`;
+
+            header.textContent = dayNumber;
+            cell.appendChild(header);
+
+            // events for this date
+            const dateEvents = eventsCache.filter((ev) => {
+                const d = new Date(ev.startTime);
+                return (
+                    d.getFullYear() === cellDate.getFullYear() &&
+                    d.getMonth() === cellDate.getMonth() &&
+                    d.getDate() === cellDate.getDate()
+                );
+            });
+
+            dateEvents.forEach((ev) => {
+                const pill = document.createElement("div");
+                pill.classList.add("event-pill");
+
+                const timeStr = new Date(ev.startTime).toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                });
+                pill.textContent = `${timeStr} – ${ev.name}`;
+                pill.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    openEventDetailModal(ev);
+                });
+                cell.appendChild(pill);
+            });
+
+            cell.addEventListener("click", () => {
+                const mm = String(cellDate.getMonth() + 1).padStart(2, "0");
+                const dd = String(cellDate.getDate()).padStart(2, "0");
+                const yyyy = cellDate.getFullYear();
+                openAddEventModal(`${mm}/${dd}/${yyyy}`);
+            });
+
+            dayGrid.appendChild(cell);
+        }
+    }
+
+    async function fetchEventsForCurrentMonth() {
+        const monthParam = `${currentYear}-${String(currentMonthIndex + 1).padStart(
+            2,
+            "0"
+        )}`;
+        try {
+            const res = await fetch(`/api/events?month=${encodeURIComponent(monthParam)}`);
+            if (!res.ok) {
+                console.error("Failed to fetch events");
+                eventsCache = [];
+            } else {
+                eventsCache = await res.json();
+            }
+        } catch (err) {
+            console.error("Error fetching events:", err);
+            eventsCache = [];
+        }
+
+        renderCalendar();
+    }
+
+    async function saveEvent() {
+        addEventError.style.display = "none";
+        addEventError.textContent = "";
+
+        const name = eventNameInput.value.trim();
+        const date = eventDateInput.value.trim();
+        const hour = eventHourSelect.value;
+        const minute = eventMinuteSelect.value;
+        const notes = eventNotesInput.value.trim();
+
+        const notifRadios = document.querySelectorAll('input[name="notif"]');
+        let notifVal = null;
+        notifRadios.forEach((r) => {
+            if (r.checked) notifVal = r.value;
+        });
+
+        if (!name || !date || !hour || !minute || notifVal === null) {
+            addEventError.textContent = "Please fill in all required fields.";
+            addEventError.style.display = "block";
+            return;
+        }
+
+        const time = `${hour}:${minute}`;
+
+        // simple client-side length validation
+        if (name.length > 300) {
+            addEventError.textContent =
+                "Event name must be 300 characters or fewer.";
+            addEventError.style.display = "block";
+            return;
+        }
+        if (notes.length > 2000) {
+            addEventError.textContent =
+                "Additional notes must be 2000 characters or fewer.";
+            addEventError.style.display = "block";
+            return;
+        }
+
+        const notify = notifVal === "yes";
+
+        try {
+            const res = await fetch("/api/events", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name,
+                    date,
+                    time,
+                    notify,
+                    notes
+                }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                addEventError.textContent =
+                    data.error || "Unexpected error saving event.";
+                addEventError.style.display = "block";
+                return;
+            }
+
+            // Success
+            closeAddEventModal();
+            await fetchEventsForCurrentMonth();
+        } catch (err) {
+            addEventError.textContent = "Network error when saving event.";
+            addEventError.style.display = "block";
+        }
+    }
+
+    // Event listeners
+    prevMonthBtn.addEventListener("click", () => {
+        if (currentMonthIndex === 0) {
+            currentMonthIndex = 11;
+            currentYear--;
+        } else {
+            currentMonthIndex--;
+        }
+        renderCalendar();
+        fetchEventsForCurrentMonth();
+    });
+
+    nextMonthBtn.addEventListener("click", () => {
+        if (currentMonthIndex === 11) {
+            currentMonthIndex = 0;
+            currentYear++;
+        } else {
+            currentMonthIndex++;
+        }
+        renderCalendar();
+        fetchEventsForCurrentMonth();
+    });
+
+    addEventFab.addEventListener("click", () => openAddEventModal());
+
+    document
+        .querySelectorAll("[data-close-add]")
+        .forEach((btn) => btn.addEventListener("click", closeAddEventModal));
+
+    document
+        .querySelectorAll("[data-close-detail]")
+        .forEach((btn) => btn.addEventListener("click", closeEventDetailModal));
+
+    saveEventBtn.addEventListener("click", saveEvent);
+
+    deleteEventBtn.addEventListener("click", async () => {
+        if (!selectedEvent || !selectedEvent.id) {
+            closeEventDetailModal();
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Delete this event?\n\n${selectedEvent.name}`
+        );
+        if (!confirmed) return;
+
+        try {
+            const res = await fetch(`/api/events/${selectedEvent.id}`, {
+                method: "DELETE",
+            });
+
+            if (!res.ok) {
+                console.error("Failed to delete event");
+                // (optional) show a small error somewhere in the modal
+            } else {
+                // refresh month events so it disappears from the calendar
+                await fetchEventsForCurrentMonth();
+            }
+        } catch (err) {
+            console.error("Network error deleting event:", err);
+        } finally {
+            selectedEvent = null;
+            closeEventDetailModal();
+        }
+    });
+
+    // Init
+    (function init() {
+        const now = new Date();
+        currentYear = now.getFullYear();
+        currentMonthIndex = now.getMonth();
+        buildTimeSelectors();
+        fetchEventsForCurrentMonth();
+    })();
+</script>
+</body>
+</html>

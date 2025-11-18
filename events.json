@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1763413921272,
+    "name": "hello",
+    "startTime": "2025-11-17T22:30:00.000Z",
+    "notify": true,
+    "notes": "nope",
+    "userEmail": "amoghkulkarni.debate@gmail.com",
+    "notifiedOneDay": false,
+    "notifiedOneHour": false
+  },
+  {
+    "id": 1763414834666,
+    "name": "test",
+    "startTime": "2025-11-17T22:28:00.000Z",
+    "notify": true,
+    "notes": "did it work?",
+    "userEmail": "amoghkulkarni.debate@gmail.com",
+    "notifiedOneDay": false,
+    "notifiedOneHour": false
+  }
+]

@@ -1,16 +1,47 @@
 [
+  {},
   {
-    "id": "11111111-1111-1111-1111-111111111111",
-    "fullname": "Alice Example",
-    "email": "alice@example.com",
-    "college": "Georgia State University",
-    "certificate": "Cybersecurity"
+    "id": 2,
+    "uniqueId": 87499239,
+    "firstName": "Amogh",
+    "lastName": "Kulkarni",
+    "birthday": "2003-10-02",
+    "email": "amoghkulkarni.debate@gmail.com",
+    "occupation": "Student",
+    "password": "$2b$10$utglOaES7k7auJSSrzan5OMYClALVHXQEY0eeZzfyxLXo26Zhmega",
+    "address": {
+      "street": "3278 Bransley Way",
+      "city": "Duluth",
+      "state": "GA",
+      "zip": "30097"
+    },
+    "education": {
+      "college": "Georgia State University",
+      "certificate": "BA Computer Science",
+      "gradDate": "2026-04-26"
+    },
+    "registeredAt": "2025-11-17T19:55:46.384Z"
   },
   {
-    "id": "22222222-2222-2222-2222-222222222222",
-    "fullname": "Bob Example",
-    "email": "bob@example.com",
-    "college": "Georgia Tech",
-    "certificate": "Software Engineering"
+    "id": 3,
+    "uniqueId": 79081746,
+    "firstName": "James",
+    "lastName": "Art",
+    "birthday": "2000-02-02",
+    "email": "james.art@gmail.com",
+    "occupation": "student",
+    "password": "$2b$10$q8vKSrOmp7x7jIioV/KhueWVX6z4KMs1.zXiGkd0g5EflglBQM.PC",
+    "address": {
+      "street": "123 main",
+      "city": "atlanta",
+      "state": "ga",
+      "zip": "30303"
+    },
+    "education": {
+      "college": "Georgia Institute of Technology",
+      "certificate": "BS Computer science",
+      "gradDate": "2020-05-10"
+    },
+    "registeredAt": "2025-11-18T01:57:12.805Z"
   }
 ]

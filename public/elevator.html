@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Elevator Pitch Coach | Job Skill Builder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        .shell {
+            max-width: 900px;
+            margin: 24px auto;
+            padding: 16px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+            padding: 20px;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.6rem;
+        }
+
+        p {
+            margin-top: 4px;
+            color: #4b5563;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5f5;
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+            background: #eff6ff;
+            margin: 16px 0;
+        }
+
+        .upload-area.dragover {
+            border-color: #2563eb;
+            background: #dbeafe;
+        }
+
+        input[type="file"] {
+            display: block;
+            margin: 12px auto 0;
+        }
+
+        .controls {
+            margin-top: 16px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .btn {
+            border-radius: 999px;
+            border: none;
+            padding: 8px 18px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .status {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+
+        .result-section {
+            margin-top: 24px;
+        }
+
+        .result-section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+        .result-block {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-top: 8px;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+        }
+
+        .nav-back {
+            margin-bottom: 12px;
+        }
+
+        .nav-back a {
+            text-decoration: none;
+            color: #2563eb;
+            font-size: 0.9rem;
+        }
+
+        .recording-section {
+            margin-top: 12px;
+        }
+
+        .recording-label {
+            font-size: 0.9rem;
+            color: #4b5563;
+            margin-bottom: 4px;
+        }
+
+        .recording-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .recording-indicator {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .recording-indicator.is-recording {
+            color: #b91c1c;
+            font-weight: 600;
+        }
+
+    </style>
+</head>
+<body>
+<div class="shell">
+    <div class="nav-back">
+        <a href="/index.html">&#8592; Back to dashboard</a>
+    </div>
+    <div class="card">
+        <h1>Elevator Pitch Coach</h1>
+        <p>
+            Upload an audio recording of your elevator pitch. A generative AI coach will analyze your
+            <strong>cadence</strong>, <strong>pitch</strong>, <strong>timing</strong>,
+            <strong>pacing</strong>, <strong>content</strong>, and more, then give you detailed feedback.
+        </p>
+
+        <div
+                id="uploadArea"
+                class="upload-area"
+        >
+            <div>Drop an audio file here or choose one from your device.</div>
+            <small>(Supported formats: .mp3, .wav, .m4a, .aac, .ogg — up to 25 MB)</small>
+            <input type="file" id="audioInput" accept="audio/*" />
+        </div>
+
+        <div class="recording-section">
+            <div class="recording-label">Or record your pitch directly:</div>
+            <div class="recording-controls">
+                <button class="btn btn-secondary" id="recordBtn">Start Recording</button>
+                <span class="recording-indicator" id="recordingIndicator">Not recording</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" id="clearBtn">Clear</button>
+            <button class="btn btn-primary" id="analyzeBtn">Analyze Pitch</button>
+        </div>
+
+        <div class="status" id="statusMessage"></div>
+
+        <div class="result-section" id="results" style="display:none;">
+            <h2>Transcript</h2>
+            <div class="result-block" id="transcriptBlock"></div>
+
+            <h2>AI Feedback</h2>
+            <div class="result-block" id="feedbackBlock"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const uploadArea = document.getElementById("uploadArea");
+    const audioInput = document.getElementById("audioInput");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const statusMessage = document.getElementById("statusMessage");
+    const resultsSection = document.getElementById("results");
+    const transcriptBlock = document.getElementById("transcriptBlock");
+    const feedbackBlock = document.getElementById("feedbackBlock");
+    const recordBtn = document.getElementById("recordBtn");
+    const recordingIndicator = document.getElementById("recordingIndicator");
+
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordingStream = null;
+    let isRecording = false;
+
+    let selectedFile = null;
+
+    function setStatus(msg) {
+        statusMessage.textContent = msg || "";
+    }
+
+    function resetUI() {
+        selectedFile = null;
+        audioInput.value = "";
+        resultsSection.style.display = "none";
+        transcriptBlock.textContent = "";
+        feedbackBlock.textContent = "";
+        setStatus("");
+        stopRecordingStream();
+        if (recordBtn) {
+            recordBtn.textContent = "Start Recording";
+            recordingIndicator.textContent = "Not recording";
+            recordingIndicator.classList.remove("is-recording");
+            recordBtn.disabled = false;
+        }
+    }
+
+
+    function stopRecordingStream() {
+        if (recordingStream) {
+            recordingStream.getTracks().forEach((t) => t.stop());
+            recordingStream = null;
+        }
+        mediaRecorder = null;
+        recordedChunks = [];
+        isRecording = false;
+    }
+
+    // Handle file selection
+    audioInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            selectedFile = file;
+            setStatus(`Selected file: ${file.name}`);
+        }
+    });
+
+    // Drag & drop behavior
+    uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.classList.add("dragover");
+    });
+
+    uploadArea.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove("dragover");
+    });
+
+    uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove("dragover");
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            selectedFile = file;
+            audioInput.files = e.dataTransfer.files;
+            setStatus(`Selected file: ${file.name}`);
+        }
+    });
+
+    async function startRecording() {
+        try {
+            recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(recordingStream);
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                    recordedChunks.push(e.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: "audio/webm" });
+                const file = new File([blob], "elevator_pitch.webm", {
+                    type: "audio/webm",
+                });
+
+                selectedFile = file;
+                setStatus("Recorded audio ready: elevator_pitch.webm");
+                recordingIndicator.textContent = "Recording complete (ready to analyze)";
+                recordingIndicator.classList.remove("is-recording");
+                recordBtn.textContent = "Start Recording";
+
+                stopRecordingStream();
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            recordBtn.textContent = "Stop Recording";
+            recordingIndicator.textContent = "Recording... speak now";
+            recordingIndicator.classList.add("is-recording");
+            setStatus("Recording... click 'Stop Recording' when you’re done.");
+        } catch (err) {
+            console.error("Error starting recording:", err);
+            setStatus("Could not access microphone. Please check permissions.");
+            stopRecordingStream();
+        }
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            isRecording = false;
+            recordingIndicator.textContent = "Processing recording...";
+        }
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        recordBtn.disabled = true;
+        recordingIndicator.textContent = "Recording not supported in this browser.";
+    } else {
+        recordBtn.addEventListener("click", () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+    }
+
+    clearBtn.addEventListener("click", () => {
+        resetUI();
+    });
+
+    analyzeBtn.addEventListener("click", async () => {
+        if (!selectedFile) {
+            setStatus("Please select or drop an audio file first.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("audio", selectedFile);
+
+        analyzeBtn.disabled = true;
+        clearBtn.disabled = true;
+        setStatus("Uploading and analyzing your elevator pitch... this may take a moment.");
+
+        try {
+            const res = await fetch("/api/elevator/analyze", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                const errorMsg =
+                    data.error || "Something went wrong while analyzing your pitch.";
+                setStatus(errorMsg);
+                analyzeBtn.disabled = false;
+                clearBtn.disabled = false;
+                return;
+            }
+
+            const data = await res.json();
+            setStatus("Analysis complete!");
+
+            transcriptBlock.textContent = data.transcript || "(No transcript returned.)";
+            feedbackBlock.textContent = data.feedback || "(No feedback returned.)";
+            resultsSection.style.display = "block";
+        } catch (err) {
+            console.error("Error calling elevator analyze API:", err);
+            setStatus("Network error while analyzing your pitch. Please try again.");
+        } finally {
+            analyzeBtn.disabled = false;
+            clearBtn.disabled = false;
+        }
+    });
+
+    // init
+    resetUI();
+</script>
+</body>
+</html>

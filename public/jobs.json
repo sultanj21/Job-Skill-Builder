@@ -1,5 +1,46 @@
 [
-  {"title": "Frontend Developer", "company": "TechNova", "location": "Atlanta, GA", "link": "https://example.com/apply/frontend"},
-  {"title": "Software Engineer", "company": "CloudCore", "location": "Remote", "link": "https://example.com/apply/software"},
-  {"title": "Data Analyst", "company": "Insightful Corp", "location": "New York, NY", "link": "https://example.com/apply/analyst"}
+  {
+    "title": "Frontend Engineer",
+    "company": "TechNova",
+    "location": "Atlanta, GA",
+    "type": "Full-time",
+    "salary": "$95K - $115K",
+    "logo": "https://logo.clearbit.com/netflix.com",
+    "link": "https://example.com/apply/frontend",
+    "description": "Shape customer-facing dashboards with React, TypeScript, Tailwind, and accessibility best practices.",
+    "keywords": ["javascript", "react", "css", "ui", "frontend"]
+  },
+  {
+    "title": "Software Engineer, Cloud Integrations",
+    "company": "CloudCore",
+    "location": "Remote (US)",
+    "type": "Hybrid",
+    "salary": "$110K - $135K",
+    "logo": "https://logo.clearbit.com/slack.com",
+    "link": "https://example.com/apply/software",
+    "description": "Build API-first microservices using Node.js, GraphQL, and AWS Lambda to power automation workflows.",
+    "keywords": ["node", "api", "aws", "graphql", "backend"]
+  },
+  {
+    "title": "Data Analyst",
+    "company": "Insightful Corp",
+    "location": "New York, NY",
+    "type": "Internship",
+    "salary": "$35/hr",
+    "logo": "https://logo.clearbit.com/atlassian.com",
+    "link": "https://example.com/apply/analyst",
+    "description": "Analyze marketing funnels, create dashboards in PowerBI, and translate findings into product bets.",
+    "keywords": ["sql", "python", "powerbi", "analytics", "statistics"]
+  },
+  {
+    "title": "AI/ML Resident",
+    "company": "Pathway Labs",
+    "location": "San Francisco, CA",
+    "type": "Full-time",
+    "salary": "$120K - $150K",
+    "logo": "https://logo.clearbit.com/openai.com",
+    "link": "https://example.com/apply/aiml",
+    "description": "Prototype retrieval-augmented applications, evaluate LLM prompts, and collaborate with product teams.",
+    "keywords": ["python", "machine learning", "llm", "pytorch", "nlp"]
+  }
 ]
