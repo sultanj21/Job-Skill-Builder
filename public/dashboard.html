@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <title>Pathway Dashboard</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
         body {
             margin: 0;
@@ -110,7 +109,7 @@
     <div class="side-item" onclick="showSection('ai', this)">🤖 AI Resume Formatter</div>
     <div class="side-item" onclick="showSection('tracker', this)">📌 Job Tracker</div>
     <div class="side-item" onclick="showSection('settings', this)">⚙️ Settings</div>
-    <br /><br />
+    <br/><br/>
     <div style="text-align:center;">
         <button class="dark-toggle" onclick="toggleDark()">🌙 Dark Mode</button>
     </div>
@@ -121,7 +120,8 @@
     <!-- PERSONAL INFO -->
     <div id="personal" class="section" style="display:block;">
         <h2>Your Personal Information</h2>
-        <img id="profilePic" src="" alt="Profile Picture" onerror="this.src='https://via.placeholder.com/80'">
+        <img id="profilePic" src="" alt="Profile Picture"
+             onerror="this.src='https://via.placeholder.com/80'">
         <div id="personalData" style="margin-top:15px;"></div>
     </div>
 
@@ -129,7 +129,7 @@
     <div id="resume" class="section">
         <h2>Upload Your Resume</h2>
         <form id="resumeForm">
-            <input type="file" name="resume" required><br><br>
+            <input type="file" name="resume" required><br/><br/>
             <button type="submit">Upload</button>
         </form>
         <p id="uploadResult"></p>
@@ -142,7 +142,7 @@
     <!-- AI RESUME FORMATTER -->
     <div id="ai" class="section">
         <h2>AI Resume Formatter</h2>
-        <textarea id="resumeText" style="width:100%;height:200px;"></textarea><br><br>
+        <textarea id="resumeText" style="width:100%;height:200px;"></textarea><br/><br/>
         <button onclick="formatResume()">Format Resume</button>
         <h3>Formatted Output:</h3>
         <div id="aiResult" style="white-space:pre-wrap;"></div>
@@ -153,28 +153,28 @@
         <h2>Job Application Tracker</h2>
 
         <input id="jobTitle" placeholder="Job Title" style="width:48%; padding:8px;">
-        <input id="jobCompany" placeholder="Company" style="width:48%; padding:8px;"><br><br>
+        <input id="jobCompany" placeholder="Company" style="width:48%; padding:8px;"><br/><br/>
         <input id="jobStatus" placeholder="Status: Applied, Interview, Offer" style="width:48%; padding:8px;">
-        <input id="jobDate" type="date" style="width:48%; padding:8px;"><br><br>
+        <input id="jobDate" type="date" style="width:48%; padding:8px;"><br/><br/>
         <button onclick="addJob()">Add Job</button>
 
         <h3>Saved Jobs</h3>
         <div id="jobList"></div>
 
-        <hr>
+        <hr/>
 
         <h2>Interview Scheduler</h2>
         <input id="intCompany" placeholder="Company" style="width:48%; padding:8px;">
-        <input id="intRole" placeholder="Role" style="width:48%; padding:8px;"><br><br>
+        <input id="intRole" placeholder="Role" style="width:48%; padding:8px;"><br/><br/>
         <input id="intDate" type="date" style="width:48%; padding:8px;">
-        <input id="intTime" type="time" style="width:48%; padding:8px;"><br><br>
-        <textarea id="intNotes" placeholder="Notes" style="width:100%;height:80px;"></textarea><br><br>
+        <input id="intTime" type="time" style="width:48%; padding:8px;"><br/><br/>
+        <textarea id="intNotes" placeholder="Notes" style="width:100%;height:80px;"></textarea><br/><br/>
         <button onclick="addInterview()">Add Interview</button>
 
         <h3>Upcoming Interviews</h3>
         <div id="interviewList"></div>
 
-        <hr>
+        <hr/>
 
         <h2>AI Job Suggestions</h2>
         <div id="suggestionsList"></div>
@@ -186,12 +186,12 @@
 
         <h3>Update Profile Picture</h3>
         <form id="avatarForm">
-            <input type="file" name="avatar" required><br><br>
+            <input type="file" name="avatar" required><br/><br/>
             <button type="submit">Upload Picture</button>
         </form>
         <p id="avatarResult"></p>
 
-        <hr>
+        <hr/>
         <button onclick="logout()">Logout</button>
     </div>
 
@@ -213,72 +213,35 @@
     fetch('/check-session')
         .then(res => res.json())
         .then(data => {
-            if (!data.loggedIn || !data.user) {
+            if (!data.loggedIn) {
                 window.location.href = "/login.html";
-                return;
+            } else {
+                const u = data.user || {};
+                document.getElementById("personalData").innerHTML = `
+          <p><b>Name:</b> ${u.fullName || "N/A"}</p>
+          <p><b>Email:</b> ${u.email || "N/A"}</p>
+          <p><b>Birthday:</b> ${u.birthday || "Not provided"}</p>
+          <p><b>Occupation:</b> ${u.occupation || "Not provided"}</p>
+          <h3>Address</h3>
+          <p><b>Street:</b> ${u.street || ""}</p>
+          <p><b>City:</b> ${u.city || ""}</p>
+          <p><b>State:</b> ${u.state || ""}</p>
+          <p><b>ZIP:</b> ${u.zip || ""}</p>
+          <h3>College Information</h3>
+          <p><b>College:</b> ${u.college || ""}</p>
+          <p><b>Degree:</b> ${u.certificate || ""}</p>
+          <p><b>Graduation:</b> ${u.gradDate || ""}</p>
+        `;
+                if (u.profilePicPath) {
+                    document.getElementById("profilePic").src = u.profilePicPath;
+                } else {
+                    document.getElementById("profilePic").src = "https://via.placeholder.com/80";
+                }
+                loadJobs();
+                loadInterviews();
+                loadSuggestions();
+                loadResumes();
             }
-
-            const u = data.user || {};
-
-            // Helper to avoid "undefined" / empty
-            const safe = (val, fallback = "Not provided") =>
-                val === undefined || val === null || val === "" || val === "undefined" || val === "null"
-                    ? fallback
-                    : val;
-
-            // Name: try fullName, otherwise first + last
-            const fullNameRaw =
-                u.fullName ||
-                [u.firstName, u.lastName].filter(Boolean).join(" ");
-
-            const fullName = safe(fullNameRaw);
-
-            // Address – supports both flat fields and nested address object
-            const addr = u.address || {};
-            const street = safe(addr.street || u.street, "Not provided");
-            const city   = safe(addr.city   || u.city,   "Not provided");
-            const state  = safe(addr.state  || u.state,  "Not provided");
-            const zip    = safe(addr.zip    || u.zip,    "Not provided");
-
-            // Education – supports nested education object
-            const edu = u.education || {};
-            const college     = safe(edu.college     || u.college);
-            const certificate = safe(edu.certificate || u.certificate);
-            const gradDate    = safe(edu.gradDate    || u.gradDate);
-
-            document.getElementById("personalData").innerHTML = `
-      <p><b>Name:</b> ${fullName}</p>
-      <p><b>Email:</b> ${safe(u.email)}</p>
-      <p><b>Birthday:</b> ${safe(u.birthday)}</p>
-      <p><b>Occupation:</b> ${safe(u.occupation)}</p>
-
-      <h3>Address</h3>
-      <p><b>Street:</b> ${street}</p>
-      <p><b>City:</b> ${city}</p>
-      <p><b>State:</b> ${state}</p>
-      <p><b>ZIP:</b> ${zip}</p>
-
-      <h3>College Information</h3>
-      <p><b>College:</b> ${college}</p>
-      <p><b>Degree:</b> ${certificate}</p>
-      <p><b>Graduation:</b> ${gradDate}</p>
-    `;
-
-            // Profile picture
-            const img = document.getElementById("profilePic");
-            if (img) {
-                img.src = u.profilePicPath || "https://via.placeholder.com/80";
-            }
-
-            // Load other dashboard data
-            loadJobs();
-            loadInterviews();
-            loadSuggestions();
-            loadResumes();
-        })
-        .catch(err => {
-            console.error("Error checking session:", err);
-            window.location.href = "/login.html";
         });
 
     // ---- RESUME UPLOAD + LIST + VIEWER ----
@@ -292,8 +255,7 @@
         });
 
         let out = await res.json();
-        document.getElementById("uploadResult").innerText = out.message || "";
-
+        document.getElementById("uploadResult").innerText = out.message;
         if (out.success) loadResumes();
     };
 
@@ -303,12 +265,7 @@
         const list = document.getElementById("resumeList");
         list.innerHTML = "";
 
-        if (!data.success) {
-            list.innerText = data.message || "Error loading resumes.";
-            return;
-        }
-
-        if (!data.files || !data.files.length) {
+        if (!data.success || !data.files.length) {
             list.innerText = "No resumes uploaded yet.";
             return;
         }
@@ -317,10 +274,10 @@
             const div = document.createElement("div");
             div.className = "job-item";
             div.innerHTML = `
-                <b>${file.name}</b><br>
-                Uploaded: ${file.createdAt ? new Date(file.createdAt).toLocaleString() : "Unknown"}<br>
-                <button onclick="viewResume('${file.url}')">View</button>
-            `;
+        <b>${file.name}</b><br>
+        Uploaded: ${file.createdAt ? new Date(file.createdAt).toLocaleString() : "N/A"}<br>
+        <button onclick="viewResume('${file.url}')">View</button>
+      `;
             list.appendChild(div);
         });
     }
@@ -373,8 +330,6 @@
             document.getElementById("jobStatus").value = "";
             document.getElementById("jobDate").value = "";
             loadJobs();
-        } else {
-            alert(data.message || "Could not add job.");
         }
     }
 
@@ -384,7 +339,7 @@
         const list = document.getElementById("jobList");
         list.innerHTML = "";
 
-        if (!data.success || !data.jobs || !data.jobs.length) {
+        if (!data.success || !data.jobs.length) {
             list.innerText = "No jobs added yet.";
             return;
         }
@@ -393,10 +348,10 @@
             const div = document.createElement("div");
             div.className = "job-item";
             div.innerHTML = `
-                <b>${job.title}</b> at ${job.company}<br>
-                Status: ${job.status}<br>
-                Date: ${job.date || "N/A"}
-            `;
+        <b>${job.title}</b> at ${job.company}<br>
+        Status: ${job.status || ""}<br>
+        Date: ${job.date || "N/A"}
+      `;
             list.appendChild(div);
         });
     }
@@ -427,8 +382,6 @@
             document.getElementById("intTime").value = "";
             document.getElementById("intNotes").value = "";
             loadInterviews();
-        } else {
-            alert(data.message || "Could not add interview.");
         }
     }
 
@@ -438,7 +391,7 @@
         const list = document.getElementById("interviewList");
         list.innerHTML = "";
 
-        if (!data.success || !data.interviews || !data.interviews.length) {
+        if (!data.success || !data.interviews.length) {
             list.innerText = "No interviews scheduled yet.";
             return;
         }
@@ -447,10 +400,10 @@
             const div = document.createElement("div");
             div.className = "interview-item";
             div.innerHTML = `
-                <b>${int.company}</b> - ${int.role}<br>
-                ${int.date} at ${int.time}<br>
-                Notes: ${int.notes || "None"}
-            `;
+        <b>${int.company}</b> - ${int.role}<br>
+        ${int.date || ""} at ${int.time || ""}<br>
+        Notes: ${int.notes || "None"}
+      `;
             list.appendChild(div);
         });
     }
@@ -462,7 +415,7 @@
         const list = document.getElementById("suggestionsList");
         list.innerHTML = "";
 
-        if (!data.success || !data.suggestions) {
+        if (!data.success) {
             list.innerText = "Error getting suggestions.";
             return;
         }
@@ -471,10 +424,10 @@
             const div = document.createElement("div");
             div.className = "suggestion-item";
             div.innerHTML = `
-                <b>${s.title}</b><br>
-                Company: ${s.company}<br>
-                Location: ${s.location}
-            `;
+        <b>${s.title}</b><br>
+        Company: ${s.company}<br>
+        Location: ${s.location}
+      `;
             list.appendChild(div);
         });
     }
@@ -490,7 +443,7 @@
         });
 
         const data = await res.json();
-        document.getElementById("avatarResult").innerText = data.message || "";
+        document.getElementById("avatarResult").innerText = data.message;
 
         if (data.success && data.path) {
             document.getElementById("profilePic").src = data.path;

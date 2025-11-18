@@ -46,15 +46,16 @@
 </div>
 
 <script>
-    // 👁️ Toggle password visibility
+    // Toggle password visibility
     document.getElementById("toggleLoginPass").addEventListener("click", () => {
         const passwordInput = document.getElementById("password");
+        const icon = document.getElementById("toggleLoginPass");
         const show = passwordInput.type === "password";
         passwordInput.type = show ? "text" : "password";
-        document.getElementById("toggleLoginPass").textContent = show ? "🔓" : "👁️";
+        icon.textContent = show ? "🔓" : "👁️";
     });
 
-    // 🚀 Handle login submission
+    // Handle login submission
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -67,7 +68,7 @@
         message.textContent = "⏳ Logging in...";
 
         try {
-            const res = await fetch("/login", {
+            const res = await fetch("/api/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password })
@@ -81,10 +82,16 @@
                 return;
             }
 
+            // Save user info locally (optional)
+            localStorage.setItem("loggedUser", JSON.stringify({
+                ...data.user,
+                lastLogin: new Date().toISOString()
+            }));
+
             message.style.color = "green";
             message.textContent = "✅ Login successful! Redirecting...";
 
-            setTimeout(() => window.location.href = "dashboard.html", 800);
+            setTimeout(() => window.location.href = "dashboard.html", 700);
         } catch (err) {
             console.error("Login error:", err);
             message.style.color = "red";
