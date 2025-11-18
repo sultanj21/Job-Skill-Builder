@@ -8,9 +8,9 @@ const OpenAI = require("openai");
 const router = express.Router();
 
 // --------- OpenAI client ----------
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = process.env.OPENAI_API_KEY
+    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    : null;
 
 // --------- Multer setup for audio upload ----------
 const uploadDir = path.join(__dirname, "uploads");
@@ -76,6 +76,12 @@ router.post(
     "/elevator/analyze",
     upload.single("audio"),
     async (req, res) => {
+        if (!openai) {
+            return res.status(500).json({
+                error: "OpenAI API key is not configured on the server.",
+            });
+        }
+
         const filePath = req.file?.path;
 
         if (!filePath) {
