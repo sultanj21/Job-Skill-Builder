@@ -31,7 +31,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// serve frontend files from /public
+// 🔹 Make the login page the very first thing people see:
+app.get("/", (req, res) => {
+    res.redirect("/login.html");
+});
+
+// Serve static frontend files
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
@@ -44,6 +49,7 @@ app.use(
         },
     })
 );
+
 
 // ---------- MULTER: PROFILE PICS (LOCAL DISK) ----------
 const profileDir = path.join(__dirname, "public/profile");
